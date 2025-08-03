@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Visualize your browser history as an interactive map. Privacy-first, client-side processing of your browsing data.">
-    <meta name="keywords" content="browser history, data visualization, privacy, map, web analytics">
+    <meta name="description" content="Visualize your browser history as an interactive map. Privacy-first, client-side processing with browser extension support.">
+    <meta name="keywords" content="browser history, data visualization, privacy, map, web analytics, browser extension">
     <meta name="author" content="Browser History Map Explorer">
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Browser History Map Explorer">
-    <meta property="og:description" content="Visualize your browsing journey as an interactive map">
+    <meta property="og:description" content="Visualize your browsing journey as an interactive map with our browser extension or manual upload">
     <meta property="og:url" content="https://shikhary.github.io/browser-history-map">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAA8fHxAO7u7gDt7e0A7OzsAOvr6wDq6uoA6enpAOjo6ADn5+cA5ubmAOXl5QDk5OQA4+PjAOLi4gDh4eEA4ODgAN/f3wDe3t4A3d3dANzc3ADa2toA2dnZANjY2ADX19cA1tbWANXV1QDU1NQA09PTANLS0gDR0dEA0NDQAJSUlACTk5MAkpKSAJGRkQCQkJAAj4+PAI6OjgCNjY0AjIyMAIuLiwCKiooAiYmJAIiIiACHh4cAhoaGAIWFhQCEhIQAg4ODAIKCggCBgYEAgICAAH9/fwB+fn4AfX19AHx8fAB7e3sAenp6AHl5eQB4eHgAd3d3AHZ2dgB1dXUAdHR0AHNzcwByc+IA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAA==">
-    
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAA">
     <title>Browser History Map Explorer</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,23 +25,28 @@
         <header>
             <h1>🗺️ Browser History Map Explorer</h1>
             <p>Visualize your browsing journey as an interactive map</p>
+            <div class="header-badges">
+                <span class="badge">🔒 Privacy-First</span>
+                <span class="badge">🚀 Extension Support</span>
+                <span class="badge">📊 Interactive</span>
+            </div>
         </header>
 
         <div class="upload-section">
             <!-- Quick Access Methods -->
             <div class="quick-access-section">
-                <h3>🚀 Quick Access Methods</h3>
+                <h3>🚀 Choose Your Method</h3>
                 <div class="access-methods">
-                    <div class="method-card">
-                        <div class="method-icon">�</div>
-                        <h4>Limited Auto-Access</h4>
-                        <p>Try accessing limited browser data (demo purposes)</p>
-                        <button id="accessChromeHistory" class="method-btn">� Try Limited Access</button>
-                        <small class="method-note">Shows 1-3 URLs only</small>
+                    <div class="method-card featured">
+                        <div class="method-icon">🔗</div>
+                        <h4>Browser Extension</h4>
+                        <p>One-click export with full privacy protection</p>
+                        <button id="installExtension" class="method-btn">📥 Get Extension</button>
+                        <small class="method-note">Recommended for best experience</small>
                     </div>
                     
                     <div class="method-card">
-                        <div class="method-icon">�</div>
+                        <div class="method-icon">📋</div>
                         <h4>Smart Copy-Paste</h4>
                         <p>Intelligent URL detection with helpful shortcuts</p>
                         <button id="pasteUrls" class="method-btn">Smart Paste</button>
@@ -50,11 +54,11 @@
                     </div>
                     
                     <div class="method-card">
-                        <div class="method-icon">�</div>
-                        <h4>Browser Extension</h4>
-                        <p>Optional: Install our extension for automated access</p>
-                        <button id="installExtension" class="method-btn">Get Extension</button>
-                        <small class="method-note">Future enhancement</small>
+                        <div class="method-icon">🔍</div>
+                        <h4>Limited Auto-Access</h4>
+                        <p>Try accessing limited browser data (demo purposes)</p>
+                        <button id="accessChromeHistory" class="method-btn">🔍 Try Limited Access</button>
+                        <small class="method-note">Shows 1-3 URLs only</small>
                     </div>
                 </div>
             </div>
@@ -65,7 +69,6 @@
                 <div class="smart-paste-tools">
                     <button onclick="browserHistoryMap.checkClipboardForUrls()" class="smart-btn">📋 Auto-Detect Clipboard URLs</button>
                     <button onclick="browserHistoryMap.generateSampleUrls()" class="smart-btn">🌟 Add Popular Sites</button>
-                    <button onclick="browserHistoryMap.addPopularSitesToPaste()" class="smart-btn">➕ Add Common URLs</button>
                 </div>
                 <div class="browser-suggestion" id="browserSuggestion">
                     <p><strong>💡 Quick Tip:</strong> <span id="suggestionText">Open a new tab in your browser and copy URLs from the start page!</span></p>
@@ -97,13 +100,16 @@ https://github.com
                     <p>Drop your browser history file here or click to browse</p>
                     <input type="file" id="fileInput" accept=".json,.csv,.txt" multiple>
                     <div class="file-format-info">
-                        <small>Supported formats: JSON, CSV, TXT</small>
+                        <small>Supported formats: JSON, CSV, TXT (max 10MB)</small>
                     </div>
                 </div>
             </div>
             
             <div class="demo-section">
                 <button id="loadDemoData" class="demo-btn">📊 Try with Demo Data</button>
+                <div class="extension-detected" id="extensionDetected" style="display: none;">
+                    <button id="loadFromExtension" class="demo-btn">🔗 Load from Extension</button>
+                </div>
             </div>
         </div>
 
@@ -145,6 +151,10 @@ https://github.com
             <div class="legend">
                 <h4>Legend</h4>
                 <div class="legend-item">
+                    <div class="legend-color" style="background: #d73027;"></div>
+                    <span>Very High Activity (20+ visits)</span>
+                </div>
+                <div class="legend-item">
                     <div class="legend-color" style="background: #ff6b6b;"></div>
                     <span>High Activity (10+ visits)</span>
                 </div>
@@ -160,65 +170,153 @@ https://github.com
         </div>
 
         <div class="instructions" id="instructions">
-            <h3>� Super Easy Ways to Get Your Browsing Data (No Extensions Needed!)</h3>
+            <h3>🚀 Super Easy Ways to Get Your Browsing Data</h3>
             
-            <div class="easy-methods">
-                <div class="easy-method-card">
-                    <h4>⚡ Instant Methods (30 seconds!)</h4>
-                    <ul>
-                        <li><strong>🏠 New Tab Magic:</strong> Open a new tab, copy URLs from "Most visited" or "Top sites" tiles</li>
-                        <li><strong>📝 Address Bar Trick:</strong> Type a letter in your address bar, copy suggested URLs</li>
-                        <li><strong>� Smart Paste:</strong> Use our clipboard detection to automatically find URLs</li>
-                        <li><strong>� Bookmark Export:</strong> Export bookmarks as HTML and copy the URLs</li>
-                    </ul>
-                </div>
+            <div class="method-tabs">
+                <button class="tab-btn active" onclick="showTab('extension')">🔗 Extension (Recommended)</button>
+                <button class="tab-btn" onclick="showTab('manual')">📋 Manual Methods</button>
+                <button class="tab-btn" onclick="showTab('upload')">📁 File Upload</button>
+            </div>
 
-                <div class="easy-method-card">
-                    <h4>🧠 Smart Tips</h4>
-                    <ul>
-                        <li>Our app auto-detects your browser and shows specific instructions</li>
-                        <li>Clipboard detection automatically finds URLs you've copied</li>
-                        <li>Popular sites suggestions help you get started quickly</li>
-                        <li>No downloads, exports, or complicated steps required!</li>
-                    </ul>
+            <div id="extension-tab" class="tab-content active">
+                <div class="extension-info">
+                    <h4>🎯 Browser Extension - The Best Experience</h4>
+                    <div class="extension-benefits">
+                        <div class="benefit-card">
+                            <div class="benefit-icon">⚡</div>
+                            <div class="benefit-text">
+                                <strong>One-Click Export</strong>
+                                <p>Export your entire browsing history with a single click</p>
+                            </div>
+                        </div>
+                        <div class="benefit-card">
+                            <div class="benefit-icon">🔒</div>
+                            <div class="benefit-text">
+                                <strong>100% Private</strong>
+                                <p>Data never leaves your device - completely secure</p>
+                            </div>
+                        </div>
+                        <div class="benefit-card">
+                            <div class="benefit-icon">🎯</div>
+                            <div class="benefit-text">
+                                <strong>Smart Filtering</strong>
+                                <p>Choose date ranges and auto-exclude sensitive data</p>
+                            </div>
+                        </div>
+                        <div class="benefit-card">
+                            <div class="benefit-icon">🚀</div>
+                            <div class="benefit-text">
+                                <strong>Direct Integration</strong>
+                                <p>Automatically opens the visualization in this web app</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="installation-guide">
+                        <h4>📦 Quick Installation (2 minutes)</h4>
+                        <ol class="install-steps">
+                            <li>
+                                <strong>Download:</strong> 
+                                <a href="https://github.com/ShikharY/browser-history-map/archive/main.zip" target="_blank" class="download-link">
+                                    📥 Download Extension Package
+                                </a>
+                            </li>
+                            <li><strong>Extract:</strong> Unzip the downloaded file</li>
+                            <li><strong>Install:</strong> Go to <code>chrome://extensions/</code> in Chrome/Edge</li>
+                            <li><strong>Enable:</strong> Turn on "Developer mode" (top right)</li>
+                            <li><strong>Load:</strong> Click "Load unpacked" → select the browser-extension folder</li>
+                            <li><strong>Use:</strong> Click the extension icon and export your data!</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
 
-            <div class="traditional-methods">
-                <h4>🔧 Traditional Methods (If You Want Full History)</h4>
-                <div class="browser-instructions">
-                    <div class="browser-card">
-                        <h4>🌐 Chrome/Edge</h4>
-                        <ol>
-                            <li>Press Ctrl+H to open history</li>
-                            <li>Right-click entries and "Copy link address"</li>
-                            <li>Or use Google Takeout for full data export</li>
-                            <li>Paste URLs using our smart paste feature above</li>
-                        </ol>
+            <div id="manual-tab" class="tab-content">
+                <div class="easy-methods">
+                    <div class="easy-method-card">
+                        <h4>⚡ Instant Methods (30 seconds!)</h4>
+                        <ul>
+                            <li><strong>🏠 New Tab Magic:</strong> Open a new tab, copy URLs from "Most visited" or "Top sites" tiles</li>
+                            <li><strong>📝 Address Bar Trick:</strong> Type a letter in your address bar, copy suggested URLs</li>
+                            <li><strong>📋 Smart Paste:</strong> Use our clipboard detection to automatically find URLs</li>
+                            <li><strong>🔖 Bookmark Export:</strong> Export bookmarks as HTML and copy the URLs</li>
+                        </ul>
                     </div>
-                    
-                    <div class="browser-card">
-                        <h4>🦊 Firefox</h4>
-                        <ol>
-                            <li>Press Ctrl+Shift+H for Library view</li>
-                            <li>Right-click entries and "Copy link location"</li>
-                            <li>Or export bookmarks to HTML format</li>
-                            <li>Use our smart paste to process the URLs</li>
-                        </ol>
+
+                    <div class="easy-method-card">
+                        <h4>🧠 Smart Tips</h4>
+                        <ul>
+                            <li>Our app auto-detects your browser and shows specific instructions</li>
+                            <li>Clipboard detection automatically finds URLs you've copied</li>
+                            <li>Popular sites suggestions help you get started quickly</li>
+                            <li>No downloads, exports, or complicated steps required!</li>
+                        </ul>
                     </div>
-                    
-                    <div class="browser-card">
-                        <h4>🧭 Safari</h4>
-                        <ol>
-                            <li>Go to History → Show All History</li>
-                            <li>Right-click entries to copy URLs</li>
-                            <li>Export Reading List and bookmarks</li>
-                            <li>Use our clipboard detection feature</li>
-                        </ol>
+                </div>
+
+                <div class="traditional-methods">
+                    <h4>🔧 Traditional Methods (If You Want Full History)</h4>
+                    <div class="browser-instructions">
+                        <div class="browser-card">
+                            <h4>🌐 Chrome/Edge</h4>
+                            <ol>
+                                <li>Press Ctrl+H to open history</li>
+                                <li>Right-click entries and "Copy link address"</li>
+                                <li>Or use Google Takeout for full data export</li>
+                                <li>Paste URLs using our smart paste feature above</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="browser-card">
+                            <h4>🦊 Firefox</h4>
+                            <ol>
+                                <li>Press Ctrl+Shift+H for Library view</li>
+                                <li>Right-click entries and "Copy link location"</li>
+                                <li>Or export bookmarks to HTML format</li>
+                                <li>Use our smart paste to process the URLs</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="browser-card">
+                            <h4>🧭 Safari</h4>
+                            <ol>
+                                <li>Go to History → Show All History</li>
+                                <li>Right-click entries to copy URLs</li>
+                                <li>Export Reading List and bookmarks</li>
+                                <li>Use our clipboard detection feature</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>
-            
+
+            <div id="upload-tab" class="tab-content">
+                <div class="upload-instructions">
+                    <h4>📁 File Upload Instructions</h4>
+                    <p>If you have exported your browser history as a file, you can upload it directly:</p>
+                    
+                    <div class="file-formats">
+                        <div class="format-card">
+                            <h5>📄 JSON Format</h5>
+                            <p>Most browser extensions and export tools create JSON files</p>
+                            <code>{"url": "https://example.com", "title": "Example", "visit_count": 5}</code>
+                        </div>
+                        
+                        <div class="format-card">
+                            <h5>📊 CSV Format</h5>
+                            <p>Spreadsheet-friendly format with headers</p>
+                            <code>url,title,visit_count,last_visit_time</code>
+                        </div>
+                        
+                        <div class="format-card">
+                            <h5>📝 TXT Format</h5>
+                            <p>Simple text file with one URL per line</p>
+                            <code>https://example.com<br>https://another-site.com</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="privacy-note">
                 <h4>🔒 Privacy First, Always</h4>
                 <p>Your browsing data never leaves your device. Everything is processed locally in your browser. We've designed these methods to be as privacy-friendly as possible while still being incredibly easy to use!</p>
@@ -228,5 +326,25 @@ https://github.com
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+    </script>
 </body>
 </html>

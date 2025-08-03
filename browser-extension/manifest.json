@@ -1,33 +1,37 @@
 {
   "manifest_version": 3,
-  "name": "Browser History Map Explorer",
-  "version": "1.0",
-  "description": "Export your browser history for visualization on Browser History Map Explorer",
+  "name": "Browser History Map Exporter",
+  "version": "1.0.0",
+  "description": "Export your browser history to Browser History Map Explorer for visualization",
   "permissions": [
     "history",
     "activeTab",
     "storage"
   ],
-  "host_permissions": [
-    "https://shikhary.github.io/*",
-    "http://localhost:*"
-  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Export Browser History"
+    "default_title": "Export History to Map"
   },
-  "content_scripts": [
-    {
-      "matches": ["https://shikhary.github.io/browser-history-map/*", "http://localhost:*/*"],
-      "js": ["content.js"]
-    }
-  ],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
-  }
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
