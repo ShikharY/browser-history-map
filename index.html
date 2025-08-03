@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Visualize your browser history as an interactive map. Privacy-first, client-side processing of your browsing data.">
+    <meta name="keywords" content="browser history, data visualization, privacy, map, web analytics">
+    <meta name="author" content="Browser History Map Explorer">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Browser History Map Explorer">
+    <meta property="og:description" content="Visualize your browsing journey as an interactive map">
+    <meta property="og:url" content="https://yourusername.github.io/browser-history-map">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAA8fHxAO7u7gDt7e0A7OzsAOvr6wDq6uoA6enpAOjo6ADn5+cA5ubmAOXl5QDk5OQA4+PjAOLi4gDh4eEA4ODgAN/f3wDe3t4A3d3dANzc3ADa2toA2dnZANjY2ADX19cA1tbWANXV1QDU1NQA09PTANLS0gDR0dEA0NDQAJSUlACTk5MAkpKSAJGRkQCQkJAAj4+PAI6OjgCNjY0AjIyMAIuLiwCKiooAiYmJAIiIiACHh4cAhoaGAIWFhQCEhIQAg4ODAIKCggCBgYEAgICAAH9/fwB+fn4AfX19AHx8fAB7e3sAenp6AHl5eQB4eHgAd3d3AHZ2dgB1dXUAdHR0AHNzcwByc+IA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAA==">
+    
+    <title>Browser History Map Explorer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ Browser History Map Explorer</h1>
+            <p>Visualize your browsing journey as an interactive map</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" width="48" height="48">
+                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                    </svg>
+                    <h3>Upload Your Browser History</h3>
+                    <p>Drop your browser history file here or click to browse</p>
+                    <input type="file" id="fileInput" accept=".json,.csv,.txt" multiple>
+                    <div class="file-format-info">
+                        <small>Supported formats: JSON, CSV, TXT</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <button id="loadDemoData" class="demo-btn">📊 Try with Demo Data</button>
+            </div>
+        </div>
+
+        <div class="controls-section" id="controlsSection" style="display: none;">
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="timeRange">Time Range:</label>
+                    <select id="timeRange">
+                        <option value="all">All Time</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 3 Months</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="siteFilter">Filter Sites:</label>
+                    <input type="text" id="siteFilter" placeholder="Search domains...">
+                </div>
+                
+                <div class="filter-group">
+                    <button id="resetView" class="control-btn">🔄 Reset View</button>
+                    <button id="exportData" class="control-btn">💾 Export</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container" id="mapContainer" style="display: none;">
+            <div class="map-header">
+                <h2>Your Browsing Journey</h2>
+                <div class="stats" id="stats">
+                    <span id="totalSites">0 sites</span> • 
+                    <span id="totalVisits">0 visits</span> • 
+                    <span id="timeSpan">0 days</span>
+                </div>
+            </div>
+            <div id="map"></div>
+            
+            <div class="legend">
+                <h4>Legend</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6b6b;"></div>
+                    <span>High Activity (10+ visits)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4ecdc4;"></div>
+                    <span>Medium Activity (5-9 visits)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #45b7d1;"></div>
+                    <span>Low Activity (1-4 visits)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions" id="instructions">
+            <h3>📋 How to Export Your Browser History</h3>
+            
+            <div class="browser-instructions">
+                <div class="browser-card">
+                    <h4>🌐 Chrome</h4>
+                    <ol>
+                        <li>Open Chrome Settings (chrome://settings/)</li>
+                        <li>Click "Privacy and security" → "Clear browsing data"</li>
+                        <li>Or use browser extensions like "History Export"</li>
+                        <li>Export as JSON or CSV format</li>
+                    </ol>
+                </div>
+                
+                <div class="browser-card">
+                    <h4>🦊 Firefox</h4>
+                    <ol>
+                        <li>Open Firefox and press Ctrl+Shift+H</li>
+                        <li>Go to "Library" → "History" → "Show All History"</li>
+                        <li>Use "Export Bookmarks to HTML" or browser extensions</li>
+                        <li>Convert to JSON/CSV for upload</li>
+                    </ol>
+                </div>
+                
+                <div class="browser-card">
+                    <h4>🧭 Safari</h4>
+                    <ol>
+                        <li>Open Safari → "History" menu</li>
+                        <li>Use third-party tools or export via developer tools</li>
+                        <li>Save in JSON or CSV format</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="privacy-note">
+                <h4>🔒 Privacy Notice</h4>
+                <p>Your browsing history is processed entirely in your browser. No data is sent to any server. The visualization is created locally on your device.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
