@@ -149,6 +149,51 @@ header p {
     font-weight: 600;
 }
 
+.smart-paste-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.smart-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.smart-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    background: linear-gradient(135deg, #218838, #1ea085);
+}
+
+.browser-suggestion {
+    background: #e8f5e8;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+    margin-bottom: 15px;
+}
+
+.browser-suggestion p {
+    margin: 0;
+    color: #155724;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.browser-suggestion strong {
+    color: #0f4c23;
+}
+
 #urlTextarea {
     width: 100%;
     min-height: 200px;
@@ -160,6 +205,7 @@ header p {
     resize: vertical;
     margin-bottom: 15px;
     transition: border-color 0.3s ease;
+    line-height: 1.5;
 }
 
 #urlTextarea:focus {
@@ -535,6 +581,28 @@ header p {
     
     #map {
         height: 400px;
+    }
+    
+    .smart-paste-tools {
+        flex-direction: column;
+    }
+    
+    .smart-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .access-methods {
+        grid-template-columns: 1fr;
+    }
+    
+    .paste-controls {
+        flex-direction: column;
+    }
+    
+    .paste-controls button {
+        width: 100%;
+        margin-bottom: 10px;
     }
 }
 

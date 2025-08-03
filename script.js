@@ -504,402 +504,796 @@ class BrowserHistoryMap {
         
         try {
             console.log('Access browser history called'); // Debug log
-            button.textContent = 'Checking Browser...';
+            button.textContent = 'Opening Smart Guide...';
             button.disabled = true;
 
             // Detect browser type
             const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
             const isEdge = /Edg/.test(navigator.userAgent);
             const isFirefox = /Firefox/.test(navigator.userAgent);
+            const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
             
-            console.log('Browser detection:', { isChrome, isEdge, isFirefox }); // Debug log
+            console.log('Browser detection:', { isChrome, isEdge, isFirefox, isSafari }); // Debug log
             
-            // Check if we're in an extension context or have special permissions
-            if (typeof chrome !== 'undefined' && chrome.history) {
-                console.log('Chrome extension context detected');
-                await this.accessChromeHistory();
-            } else {
-                console.log('Showing browser-specific guidance');
-                // Show browser-specific guidance
-                this.showBrowserSpecificGuidance(isChrome, isEdge, isFirefox);
-            }
+            // Try newer web APIs first
+            await this.tryModernBrowserAPIs();
+            
+            // Always show enhanced guidance
+            this.showEnhancedBrowserGuidance(isChrome, isEdge, isFirefox, isSafari);
+            
         } catch (error) {
             console.error('Browser history access failed:', error);
-            alert('Error: ' + error.message + '\n\nPlease try the "Paste URLs" method instead.');
+            // Show guidance anyway - don't alert errors
+            this.showEnhancedBrowserGuidance(true, true, true, true);
         } finally {
             button.textContent = originalText;
             button.disabled = false;
         }
     }
 
-    showBrowserSpecificGuidance(isChrome, isEdge, isFirefox) {
-        console.log('Showing browser guidance modal'); // Debug log
+    async tryModernBrowserAPIs() {
+        // Try to use newer browser APIs for limited history access
+        const results = [];
+        
+        try {
+            // Navigation API (limited support but provides some recent navigation info)
+            if ('navigation' in window) {
+                const entries = window.navigation.entries();
+                entries.forEach(entry => {
+                    if (entry.url) {
+                        results.push({
+                            url: entry.url,
+                            title: document.title || this.extractDomainFromUrl(entry.url),
+                            visit_count: 1,
+                            last_visit_time: new Date().toISOString()
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            console.log('Navigation API not available or failed:', e);
+        }
+
+        try {
+            // Performance Observer for recently visited resources
+            if ('PerformanceObserver' in window) {
+                const observer = new PerformanceObserver((list) => {
+                    const entries = list.getEntries();
+                    entries.forEach(entry => {
+                        if (entry.initiatorType === 'navigation') {
+                            results.push({
+                                url: entry.name,
+                                title: document.title || this.extractDomainFromUrl(entry.name),
+                                visit_count: 1,
+                                last_visit_time: new Date().toISOString()
+                            });
+                        }
+                    });
+                });
+                observer.observe({ entryTypes: ['navigation', 'resource'] });
+                
+                // Give it a moment to collect data
+                await new Promise(resolve => setTimeout(resolve, 500));
+                observer.disconnect();
+            }
+        } catch (e) {
+            console.log('Performance Observer not available or failed:', e);
+        }
+
+        try {
+            // Check for session/local storage hints
+            if (localStorage.length > 0 || sessionStorage.length > 0) {
+                // Look for URL-like patterns in storage
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    if (value && (value.includes('http://') || value.includes('https://'))) {
+                        const urlMatch = value.match(/(https?:\/\/[^\s"'<>]+)/g);
+                        if (urlMatch) {
+                            urlMatch.forEach(url => {
+                                results.push({
+                                    url: url,
+                                    title: this.extractDomainFromUrl(url),
+                                    visit_count: 1,
+                                    last_visit_time: new Date().toISOString()
+                                });
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('Storage analysis failed:', e);
+        }
+
+        // If we found any URLs from modern APIs, offer to use them
+        if (results.length > 0) {
+            const uniqueResults = results.filter((item, index, self) => 
+                index === self.findIndex(t => t.url === item.url)
+            );
+            
+            if (uniqueResults.length > 0) {
+                const useFound = confirm(`Found ${uniqueResults.length} URLs from browser APIs. Would you like to visualize these?`);
+                if (useFound) {
+                    this.processHistoryData(uniqueResults);
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    showEnhancedBrowserGuidance(isChrome, isEdge, isFirefox, isSafari) {
+        console.log('Showing enhanced browser guidance modal'); // Debug log
         
         let browserName = 'your browser';
         let specificInstructions = '';
+        let smartMethods = '';
         
         if (isEdge) {
             browserName = 'Microsoft Edge';
             specificInstructions = `
                 <div class="browser-specific-guide">
-                    <h4>🌐 Microsoft Edge Quick Access</h4>
-                    <div class="quick-steps">
-                        <div class="step">
-                            <span class="step-number">1</span>
-                            <div class="step-content">
-                                <strong>Open History:</strong> Press <kbd>Ctrl + H</kbd> or click the ⋯ menu → History
+                    <h4>🌟 Edge Smart Methods (No Export Needed!)</h4>
+                    
+                    <div class="smart-method-section">
+                        <h5>⚡ Super Quick Methods:</h5>
+                        <div class="smart-method">
+                            <strong>1. 📱 New Tab Recent Sites:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open a new tab (Ctrl+T)</span>
+                                <span class="step-detail">• Copy URLs from your "Top sites" or "Recent activity"</span>
+                                <span class="step-detail">• Paste them above using "📋 Paste URLs"</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">2</span>
-                            <div class="step-content">
-                                <strong>Copy URLs:</strong> Right-click on any site and "Copy link" or select and copy from address bar
+                        
+                        <div class="smart-method">
+                            <strong>2. 📚 Collections Export:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open Collections (Ctrl+Shift+Y)</span>
+                                <span class="step-detail">• Right-click collection → "Export to Excel" or copy links</span>
+                                <span class="step-detail">• Paste the URLs here</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">3</span>
-                            <div class="step-content">
-                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above to add them to your map
+                        
+                        <div class="smart-method">
+                            <strong>3. 🔖 Favorites Quick Export:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Press Ctrl+Shift+O (Favorites manager)</span>
+                                <span class="step-detail">• Select multiple favorites and copy</span>
+                                <span class="step-detail">• Or export as HTML and extract URLs</span>
                             </div>
                         </div>
                     </div>
-                    <div class="edge-tips">
-                        <h5>💡 Edge Pro Tips:</h5>
-                        <ul>
-                            <li>Use "Most visited" section for your top sites</li>
-                            <li>Check your "Collections" for organized links</li>
-                            <li>Export favorites and paste the URLs here</li>
-                        </ul>
-                    </div>
+                </div>
+            `;
+            smartMethods = `
+                <div class="edge-smart-tips">
+                    <h5>💡 Edge Pro Tips:</h5>
+                    <ul>
+                        <li><strong>Address Bar Magic:</strong> Type a letter and see your history suggestions - copy the good ones!</li>
+                        <li><strong>Sync Data:</strong> Use Edge sync to access history from other devices</li>
+                        <li><strong>Workplace/School:</strong> Check if your organization allows history export</li>
+                        <li><strong>Reading List:</strong> Export your reading list URLs as a starting point</li>
+                    </ul>
                 </div>
             `;
         } else if (isChrome) {
             browserName = 'Google Chrome';
             specificInstructions = `
                 <div class="browser-specific-guide">
-                    <h4>🌐 Google Chrome Quick Access</h4>
-                    <div class="quick-steps">
-                        <div class="step">
-                            <span class="step-number">1</span>
-                            <div class="step-content">
-                                <strong>Open History:</strong> Press <kbd>Ctrl + H</kbd> or chrome://history/
+                    <h4>🌟 Chrome Smart Methods (No Export Needed!)</h4>
+                    
+                    <div class="smart-method-section">
+                        <h5>⚡ Super Quick Methods:</h5>
+                        <div class="smart-method">
+                            <strong>1. 🚀 New Tab Shortcuts:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open new tab (Ctrl+T)</span>
+                                <span class="step-detail">• Copy URLs from "Shortcuts" or "Recently visited"</span>
+                                <span class="step-detail">• Right-click shortcuts to copy link address</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">2</span>
-                            <div class="step-content">
-                                <strong>Copy URLs:</strong> Click on any entry and copy the URL, or use the search box
+                        
+                        <div class="smart-method">
+                            <strong>2. 📱 Address Bar Smart History:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Type any letter in address bar</span>
+                                <span class="step-detail">• See your frequent sites in dropdown</span>
+                                <span class="step-detail">• Copy the URLs you want to visualize</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">3</span>
-                            <div class="step-content">
-                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                        
+                        <div class="smart-method">
+                            <strong>3. 📊 Chrome's Own Data:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Go to chrome://settings/content</span>
+                                <span class="step-detail">• Check "Site settings" for frequently visited sites</span>
+                                <span class="step-detail">• Or use chrome://history/ and copy interesting URLs</span>
                             </div>
                         </div>
                     </div>
+                </div>
+            `;
+            smartMethods = `
+                <div class="chrome-smart-tips">
+                    <h5>💡 Chrome Pro Tips:</h5>
+                    <ul>
+                        <li><strong>Google Account:</strong> Use Google Takeout to download your Chrome data</li>
+                        <li><strong>Bookmarks Bar:</strong> Your bookmarks are the easiest to export - right-click folder → copy link addresses</li>
+                        <li><strong>Recently Closed:</strong> Ctrl+Shift+T shows recently closed tabs - copy from there</li>
+                        <li><strong>Mobile Sync:</strong> Access your mobile Chrome history via Google Account</li>
+                    </ul>
                 </div>
             `;
         } else if (isFirefox) {
             browserName = 'Mozilla Firefox';
             specificInstructions = `
                 <div class="browser-specific-guide">
-                    <h4>🦊 Mozilla Firefox Quick Access</h4>
-                    <div class="quick-steps">
-                        <div class="step">
-                            <span class="step-number">1</span>
-                            <div class="step-content">
-                                <strong>Open History:</strong> Press <kbd>Ctrl + Shift + H</kbd> or Library button → History
+                    <h4>🌟 Firefox Smart Methods (No Export Needed!)</h4>
+                    
+                    <div class="smart-method-section">
+                        <h5>⚡ Super Quick Methods:</h5>
+                        <div class="smart-method">
+                            <strong>1. 🏠 Firefox Home Quick Access:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open new tab to see Firefox Home</span>
+                                <span class="step-detail">• Copy URLs from "Top Sites" and "Recent Activity"</span>
+                                <span class="step-detail">• Right-click tiles to copy link location</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">2</span>
-                            <div class="step-content">
-                                <strong>Copy URLs:</strong> Right-click entries and copy location
+                        
+                        <div class="smart-method">
+                            <strong>2. 📚 Library Power User:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Press Ctrl+Shift+H (Library)</span>
+                                <span class="step-detail">• Right-click entries → "Copy Link Location"</span>
+                                <span class="step-detail">• Select multiple with Ctrl+Click</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">3</span>
-                            <div class="step-content">
-                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                        
+                        <div class="smart-method">
+                            <strong>3. 🔖 Bookmark Export:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Ctrl+Shift+O (Bookmark manager)</span>
+                                <span class="step-detail">• Import and Backup → Export HTML</span>
+                                <span class="step-detail">• Open HTML file and copy the URLs</span>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-        } else {
-            // Fallback for other browsers
+            smartMethods = `
+                <div class="firefox-smart-tips">
+                    <h5>💡 Firefox Pro Tips:</h5>
+                    <ul>
+                        <li><strong>Awesome Bar:</strong> Type in address bar to see history suggestions</li>
+                        <li><strong>Sync Account:</strong> Access history from other devices via Firefox Sync</li>
+                        <li><strong>Private Data:</strong> Firefox focuses on privacy - check what data you've allowed to be stored</li>
+                        <li><strong>Sessions:</strong> Firefox saves session data - check recently closed windows/tabs</li>
+                    </ul>
+                </div>
+            `;
+        } else if (isSafari) {
+            browserName = 'Safari';
             specificInstructions = `
                 <div class="browser-specific-guide">
-                    <h4>🌐 Browser History Quick Access</h4>
-                    <div class="quick-steps">
-                        <div class="step">
-                            <span class="step-number">1</span>
-                            <div class="step-content">
-                                <strong>Open History:</strong> Look for History in your browser menu or press <kbd>Ctrl + H</kbd>
+                    <h4>🌟 Safari Smart Methods (No Export Needed!)</h4>
+                    
+                    <div class="smart-method-section">
+                        <h5>⚡ Super Quick Methods:</h5>
+                        <div class="smart-method">
+                            <strong>1. 📱 Start Page Shortcuts:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open new tab to see Start Page</span>
+                                <span class="step-detail">• Copy URLs from "Frequently Visited" tiles</span>
+                                <span class="step-detail">• Right-click tiles to copy link</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">2</span>
-                            <div class="step-content">
-                                <strong>Copy URLs:</strong> Right-click on entries and copy the URLs
+                        
+                        <div class="smart-method">
+                            <strong>2. 📚 History Menu:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Go to History menu → Show All History</span>
+                                <span class="step-detail">• Right-click entries to copy URL</span>
+                                <span class="step-detail">• Use search to find specific sites</span>
                             </div>
                         </div>
-                        <div class="step">
-                            <span class="step-number">3</span>
-                            <div class="step-content">
-                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                        
+                        <div class="smart-method">
+                            <strong>3. 🔖 Reading List & Bookmarks:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Check your Reading List (sidebar)</span>
+                                <span class="step-detail">• Export bookmarks via File → Export</span>
+                                <span class="step-detail">• Copy URLs from Top Hits in address bar</span>
                             </div>
                         </div>
                     </div>
+                </div>
+            `;
+            smartMethods = `
+                <div class="safari-smart-tips">
+                    <h5>💡 Safari Pro Tips:</h5>
+                    <ul>
+                        <li><strong>iCloud Sync:</strong> Access history from all your Apple devices</li>
+                        <li><strong>Privacy Focus:</strong> Safari limits tracking - check what history is available</li>
+                        <li><strong>Top Hits:</strong> Safari's address bar shows your most visited sites first</li>
+                        <li><strong>Tab Groups:</strong> Export your organized tab groups as URL lists</li>
+                    </ul>
+                </div>
+            `;
+        } else {
+            // Universal browser guidance
+            browserName = 'your browser';
+            specificInstructions = `
+                <div class="browser-specific-guide">
+                    <h4>🌟 Universal Smart Methods (Works in Any Browser!)</h4>
+                    
+                    <div class="smart-method-section">
+                        <h5>⚡ Super Quick Methods:</h5>
+                        <div class="smart-method">
+                            <strong>1. 🏠 New Tab Magic:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Open a new tab (Ctrl+T)</span>
+                                <span class="step-detail">• Look for "Most visited", "Top sites", or "Shortcuts"</span>
+                                <span class="step-detail">• Right-click tiles and copy link addresses</span>
+                            </div>
+                        </div>
+                        
+                        <div class="smart-method">
+                            <strong>2. 📝 Address Bar Intelligence:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Type a single letter in your address bar</span>
+                                <span class="step-detail">• Your browser will suggest frequently visited sites</span>
+                                <span class="step-detail">• Copy the URLs you want to map</span>
+                            </div>
+                        </div>
+                        
+                        <div class="smart-method">
+                            <strong>3. 🔖 Bookmark Export:</strong>
+                            <div class="method-steps">
+                                <span class="step-detail">• Find bookmark manager (usually Ctrl+Shift+O)</span>
+                                <span class="step-detail">• Export bookmarks as HTML</span>
+                                <span class="step-detail">• Open the HTML file and copy URLs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            smartMethods = `
+                <div class="universal-smart-tips">
+                    <h5>💡 Universal Pro Tips:</h5>
+                    <ul>
+                        <li><strong>Recently Closed:</strong> Use Ctrl+Shift+T to see recently closed tabs</li>
+                        <li><strong>Downloads Page:</strong> Your downloads often contain website URLs</li>
+                        <li><strong>Email/Messages:</strong> Check sent emails for shared links</li>
+                        <li><strong>Mobile Apps:</strong> Most browsers sync between mobile and desktop</li>
+                    </ul>
                 </div>
             `;
         }
 
         try {
             const modal = document.createElement('div');
-            modal.className = 'browser-guidance-modal';
+            modal.className = 'browser-guidance-modal enhanced-modal';
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>🚀 Quick Access for ${browserName}</h3>
+                        <h3>🚀 Smart History Access for ${browserName}</h3>
                         <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
                     </div>
                     <div class="modal-body">
-                        <div class="security-notice">
-                            <p><strong>🔒 Browser Security:</strong> For privacy protection, browsers don't allow websites to directly access your history. But we can make it super easy!</p>
+                        <div class="no-export-notice">
+                            <p><strong>✨ No Export Required!</strong> These methods work instantly without downloading or exporting any files. Just copy and paste!</p>
                         </div>
                         
                         ${specificInstructions}
                         
-                        <div class="alternative-methods">
-                            <h4>🎯 Even Easier Alternatives:</h4>
-                            <div class="alt-method">
-                                <strong>📱 Most Visited:</strong> Look for "Most visited" or "Frequently visited" in your browser and copy those URLs
+                        ${smartMethods}
+                        
+                        <div class="instant-methods">
+                            <h4>🎯 Instant Access Alternatives:</h4>
+                            <div class="instant-method-grid">
+                                <div class="instant-method">
+                                    <span class="instant-icon">📱</span>
+                                    <div class="instant-content">
+                                        <strong>Mobile History:</strong> Use browser sync to access mobile browsing history
+                                    </div>
+                                </div>
+                                <div class="instant-method">
+                                    <span class="instant-icon">🔍</span>
+                                    <div class="instant-content">
+                                        <strong>Search History:</strong> Google "my activity" to see your search history
+                                    </div>
+                                </div>
+                                <div class="instant-method">
+                                    <span class="instant-icon">📧</span>
+                                    <div class="instant-content">
+                                        <strong>Email Links:</strong> Check sent emails for shared website links
+                                    </div>
+                                </div>
+                                <div class="instant-method">
+                                    <span class="instant-icon">💬</span>
+                                    <div class="instant-content">
+                                        <strong>Social Links:</strong> Copy URLs from your social media shares
+                                    </div>
+                                </div>
                             </div>
-                            <div class="alt-method">
-                                <strong>🔖 Bookmarks:</strong> Export bookmarks and paste the URLs here
-                            </div>
-                            <div class="alt-method">
-                                <strong>📝 Address Bar:</strong> Type in your address bar and copy suggestions that appear
+                        </div>
+                        
+                        <div class="convenience-tools">
+                            <h4>🛠️ Convenience Tools:</h4>
+                            <div class="tool-buttons">
+                                <button onclick="window.open('https://takeout.google.com', '_blank')" class="tool-btn">
+                                    📊 Google Takeout
+                                </button>
+                                <button onclick="this.openHistoryInstructions()" class="tool-btn">
+                                    📖 Browser History (Ctrl+H)
+                                </button>
+                                <button onclick="this.openNewTabDemo()" class="tool-btn">
+                                    🏠 New Tab Demo
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.remove();" class="demo-btn">📋 Open Paste Area</button>
+                        <button onclick="this.openPasteArea(); this.parentElement.parentElement.parentElement.remove();" class="primary-btn">📋 Open Paste Area</button>
+                        <button onclick="this.openQuickDemo(); this.parentElement.parentElement.parentElement.remove();" class="demo-btn">🚀 Try Quick Demo</button>
                         <button onclick="this.parentElement.parentElement.parentElement.remove()" class="cancel-btn">Got it!</button>
                     </div>
                 </div>
             `;
 
-            // Add CSS if not already added
-            if (!document.querySelector('#browser-guidance-styles')) {
-                this.addBrowserGuidanceStyles();
+            // Add enhanced modal styles
+            if (!document.querySelector('#enhanced-modal-styles')) {
+                this.addEnhancedModalStyles();
             }
             
+            // Add helper methods to modal buttons
+            modal.querySelector('.modal-footer').addEventListener('click', (e) => {
+                if (e.target.classList.contains('primary-btn')) {
+                    document.getElementById('pasteUrls').click();
+                } else if (e.target.classList.contains('demo-btn')) {
+                    this.loadDemoData();
+                }
+            });
+            
             document.body.appendChild(modal);
-            console.log('Modal added to page'); // Debug log
+            console.log('Enhanced modal added to page'); // Debug log
             
         } catch (error) {
-            console.error('Error creating modal:', error);
-            // Fallback to simple alert
-            alert(`Quick Guide for ${browserName}:\n\n1. Press Ctrl+H to open history\n2. Copy URLs from your history\n3. Use the "Paste URLs" button above\n4. Paste and process your URLs!`);
+            console.error('Error creating enhanced modal:', error);
+            // Fallback to improved alert
+            alert(`🚀 Quick Access Guide for ${browserName}:\n\n` +
+                  `✨ NO EXPORT NEEDED! Try these instant methods:\n\n` +
+                  `1. 📱 Open new tab - copy URLs from "Most visited" tiles\n` +
+                  `2. 📝 Type in address bar - copy suggested URLs\n` +
+                  `3. 🔖 Export bookmarks - copy URLs from HTML file\n` +
+                  `4. 📋 Use "Paste URLs" button above for easy input\n\n` +
+                  `No files to download or export! Just copy and paste! 🎉`);
         }
     }
 
-    addBrowserGuidanceStyles() {
+    addEnhancedModalStyles() {
         const style = document.createElement('style');
-        style.id = 'browser-guidance-styles';
+        style.id = 'enhanced-modal-styles';
         style.textContent = `
-            .browser-guidance-modal {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.8);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
+            .enhanced-modal {
                 font-family: 'Poppins', sans-serif;
             }
-            .browser-guidance-modal .modal-content {
+            .enhanced-modal .modal-content {
                 background: white;
-                border-radius: 15px;
-                max-width: 600px;
-                width: 90%;
-                max-height: 85vh;
+                border-radius: 20px;
+                max-width: 800px;
+                width: 95%;
+                max-height: 90vh;
                 overflow-y: auto;
-                animation: modalSlideIn 0.3s ease-out;
+                animation: modalSlideIn 0.4s ease-out;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             }
-            @keyframes modalSlideIn {
-                from { opacity: 0; transform: translateY(-20px) scale(0.95); }
-                to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-            .browser-guidance-modal .modal-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 25px;
-                border-bottom: 1px solid #eee;
+            .enhanced-modal .modal-header {
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
-                border-radius: 15px 15px 0 0;
+                padding: 30px;
+                border-radius: 20px 20px 0 0;
+                position: relative;
+                overflow: hidden;
             }
-            .browser-guidance-modal .modal-header h3 {
+            .enhanced-modal .modal-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -20px;
+                width: 100px;
+                height: 200%;
+                background: rgba(255,255,255,0.1);
+                transform: rotate(15deg);
+            }
+            .enhanced-modal .modal-header h3 {
                 margin: 0;
-                font-weight: 600;
+                font-weight: 700;
+                font-size: 1.4rem;
+                position: relative;
+                z-index: 1;
             }
-            .browser-guidance-modal .close-modal {
-                background: none;
-                border: none;
-                font-size: 1.5rem;
-                cursor: pointer;
-                color: white;
-                opacity: 0.8;
-                transition: opacity 0.2s;
-            }
-            .browser-guidance-modal .close-modal:hover {
-                opacity: 1;
-            }
-            .browser-guidance-modal .modal-body {
-                padding: 25px;
-            }
-            .security-notice {
-                background: #e8f4fd;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #0066cc;
-                margin-bottom: 25px;
-            }
-            .security-notice p {
-                margin: 0;
-                color: #004d99;
-                line-height: 1.5;
-            }
-            .browser-specific-guide {
-                margin-bottom: 25px;
-            }
-            .browser-specific-guide h4 {
-                color: #333;
-                margin-bottom: 20px;
-                font-weight: 600;
-            }
-            .quick-steps {
-                margin-bottom: 20px;
-            }
-            .step {
-                display: flex;
-                align-items: flex-start;
-                margin-bottom: 15px;
-                padding: 15px;
-                background: #f8f9ff;
-                border-radius: 8px;
-            }
-            .step-number {
-                background: #667eea;
-                color: white;
-                width: 28px;
-                height: 28px;
+            .enhanced-modal .close-modal {
+                position: relative;
+                z-index: 2;
+                background: rgba(255,255,255,0.2);
+                border: 2px solid rgba(255,255,255,0.3);
                 border-radius: 50%;
+                width: 40px;
+                height: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                color: white;
+                font-size: 1.2rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .enhanced-modal .close-modal:hover {
+                background: rgba(255,255,255,0.3);
+                transform: rotate(90deg);
+            }
+            .enhanced-modal .modal-body {
+                padding: 30px;
+                line-height: 1.6;
+            }
+            .no-export-notice {
+                background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+                padding: 20px;
+                border-radius: 12px;
+                border-left: 5px solid #28a745;
+                margin-bottom: 30px;
+                position: relative;
+                overflow: hidden;
+            }
+            .no-export-notice::before {
+                content: '✨';
+                position: absolute;
+                top: 15px;
+                right: 20px;
+                font-size: 2rem;
+                opacity: 0.3;
+            }
+            .no-export-notice p {
+                margin: 0;
+                color: #155724;
                 font-weight: 600;
-                font-size: 0.9rem;
-                margin-right: 15px;
+                font-size: 1.1rem;
+            }
+            .smart-method-section {
+                margin-bottom: 30px;
+            }
+            .smart-method-section h5 {
+                color: #333;
+                margin-bottom: 20px;
+                font-weight: 700;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .smart-method {
+                background: #f8f9ff;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 15px;
+                border-left: 4px solid #667eea;
+                transition: all 0.3s ease;
+            }
+            .smart-method:hover {
+                transform: translateX(5px);
+                box-shadow: 0 5px 20px rgba(102, 126, 234, 0.1);
+            }
+            .smart-method strong {
+                color: #333;
+                display: block;
+                margin-bottom: 12px;
+                font-size: 1.05rem;
+            }
+            .method-steps {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .step-detail {
+                color: #555;
+                font-size: 0.95rem;
+                padding-left: 20px;
+                position: relative;
+            }
+            .step-detail::before {
+                content: '→';
+                position: absolute;
+                left: 0;
+                color: #667eea;
+                font-weight: bold;
+            }
+            .edge-smart-tips, .chrome-smart-tips, .firefox-smart-tips, .safari-smart-tips, .universal-smart-tips {
+                background: #f0f8ff;
+                padding: 20px;
+                border-radius: 12px;
+                border-left: 4px solid #0078d4;
+                margin-bottom: 25px;
+            }
+            .edge-smart-tips h5, .chrome-smart-tips h5, .firefox-smart-tips h5, .safari-smart-tips h5, .universal-smart-tips h5 {
+                margin: 0 0 15px 0;
+                color: #0078d4;
+                font-weight: 700;
+            }
+            .edge-smart-tips ul, .chrome-smart-tips ul, .firefox-smart-tips ul, .safari-smart-tips ul, .universal-smart-tips ul {
+                margin: 0;
+                padding-left: 0;
+                list-style: none;
+            }
+            .edge-smart-tips li, .chrome-smart-tips li, .firefox-smart-tips li, .safari-smart-tips li, .universal-smart-tips li {
+                margin-bottom: 10px;
+                color: #0078d4;
+                line-height: 1.5;
+                padding-left: 25px;
+                position: relative;
+            }
+            .edge-smart-tips li::before, .chrome-smart-tips li::before, .firefox-smart-tips li::before, .safari-smart-tips li::before, .universal-smart-tips li::before {
+                content: '💡';
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+            .instant-methods {
+                background: #fff8e1;
+                padding: 25px;
+                border-radius: 12px;
+                border-left: 4px solid #ffc107;
+                margin-bottom: 25px;
+            }
+            .instant-methods h4 {
+                margin: 0 0 20px 0;
+                color: #e65100;
+                font-weight: 700;
+            }
+            .instant-method-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 15px;
+            }
+            .instant-method {
+                display: flex;
+                align-items: flex-start;
+                gap: 15px;
+                background: white;
+                padding: 15px;
+                border-radius: 10px;
+                border: 1px solid #ffecb3;
+                transition: all 0.3s ease;
+            }
+            .instant-method:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(255, 193, 7, 0.2);
+            }
+            .instant-icon {
+                font-size: 1.5rem;
                 flex-shrink: 0;
             }
-            .step-content {
+            .instant-content {
                 flex: 1;
             }
-            .step-content strong {
-                color: #333;
+            .instant-content strong {
+                color: #e65100;
                 display: block;
                 margin-bottom: 5px;
             }
-            kbd {
-                background: #f4f4f4;
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                padding: 2px 6px;
-                font-family: monospace;
-                font-size: 0.9em;
+            .convenience-tools {
+                background: #f3e5f5;
+                padding: 25px;
+                border-radius: 12px;
+                border-left: 4px solid #9c27b0;
+                margin-bottom: 20px;
             }
-            .edge-tips {
-                background: #f0f8ff;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #0078d4;
+            .convenience-tools h4 {
+                margin: 0 0 20px 0;
+                color: #6a1b9a;
+                font-weight: 700;
             }
-            .edge-tips h5 {
-                margin: 0 0 10px 0;
-                color: #0078d4;
-                font-weight: 600;
-            }
-            .edge-tips ul {
-                margin: 0;
-                padding-left: 20px;
-            }
-            .edge-tips li {
-                margin-bottom: 5px;
-                color: #0078d4;
-                line-height: 1.4;
-            }
-            .alternative-methods {
-                background: #f8fff8;
-                padding: 20px;
-                border-radius: 8px;
-                border-left: 4px solid #28a745;
-            }
-            .alternative-methods h4 {
-                margin: 0 0 15px 0;
-                color: #155724;
-                font-weight: 600;
-            }
-            .alt-method {
-                margin-bottom: 12px;
-                padding: 10px;
-                background: white;
-                border-radius: 6px;
-                border: 1px solid #d4edda;
-            }
-            .alt-method strong {
-                color: #155724;
-            }
-            .browser-guidance-modal .modal-footer {
-                padding: 20px 25px;
-                border-top: 1px solid #eee;
-                text-align: center;
+            .tool-buttons {
                 display: flex;
+                flex-wrap: wrap;
                 gap: 15px;
-                justify-content: center;
             }
-            .browser-guidance-modal .demo-btn,
-            .browser-guidance-modal .cancel-btn {
-                padding: 12px 24px;
+            .tool-btn {
+                background: linear-gradient(135deg, #9c27b0, #673ab7);
+                color: white;
                 border: none;
-                border-radius: 8px;
+                padding: 12px 20px;
+                border-radius: 25px;
                 font-size: 0.9rem;
                 font-weight: 500;
                 cursor: pointer;
                 transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-block;
             }
-            .browser-guidance-modal .demo-btn {
+            .tool-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(156, 39, 176, 0.3);
+                background: linear-gradient(135deg, #8e24aa, #5e35b1);
+            }
+            .enhanced-modal .modal-footer {
+                padding: 25px 30px;
+                border-top: 1px solid #eee;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .enhanced-modal .primary-btn,
+            .enhanced-modal .demo-btn,
+            .enhanced-modal .cancel-btn {
+                padding: 15px 25px;
+                border: none;
+                border-radius: 25px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 140px;
+            }
+            .enhanced-modal .primary-btn {
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
             }
-            .browser-guidance-modal .demo-btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            .enhanced-modal .primary-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
             }
-            .browser-guidance-modal .cancel-btn {
+            .enhanced-modal .demo-btn {
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white;
+            }
+            .enhanced-modal .demo-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            }
+            .enhanced-modal .cancel-btn {
                 background: #6c757d;
                 color: white;
             }
-            .browser-guidance-modal .cancel-btn:hover {
+            .enhanced-modal .cancel-btn:hover {
                 background: #5a6268;
+                transform: translateY(-1px);
+            }
+            
+            /* Mobile responsiveness for enhanced modal */
+            @media (max-width: 768px) {
+                .enhanced-modal .modal-content {
+                    width: 98%;
+                    margin: 10px;
+                }
+                .enhanced-modal .modal-body {
+                    padding: 20px;
+                }
+                .instant-method-grid {
+                    grid-template-columns: 1fr;
+                }
+                .enhanced-modal .modal-footer {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .enhanced-modal .primary-btn,
+                .enhanced-modal .demo-btn,
+                .enhanced-modal .cancel-btn {
+                    width: 100%;
+                    margin-bottom: 10px;
+                }
+                .tool-buttons {
+                    flex-direction: column;
+                }
+                .tool-btn {
+                    width: 100%;
+                    text-align: center;
+                }
             }
         `;
         
@@ -1044,6 +1438,18 @@ class BrowserHistoryMap {
     showUrlPasteArea() {
         document.getElementById('urlPasteSection').style.display = 'block';
         document.getElementById('urlTextarea').focus();
+        
+        // Show browser-specific suggestion
+        const suggestion = this.suggestBestMethod();
+        const suggestionElement = document.getElementById('suggestionText');
+        if (suggestionElement) {
+            suggestionElement.textContent = suggestion;
+        }
+        
+        // Try to auto-detect clipboard URLs
+        setTimeout(() => {
+            this.checkClipboardForUrls();
+        }, 500);
     }
 
     hideUrlPasteArea() {
@@ -1086,11 +1492,111 @@ class BrowserHistoryMap {
         // Show success message
         alert(`Successfully processed ${urls.length} URLs! 🎉`);
     }
+
+    // Add convenience methods for easier history access
+    generateSampleUrls() {
+        const commonSites = [
+            'https://google.com',
+            'https://youtube.com', 
+            'https://github.com',
+            'https://stackoverflow.com',
+            'https://reddit.com',
+            'https://twitter.com',
+            'https://linkedin.com',
+            'https://wikipedia.org',
+            'https://amazon.com',
+            'https://netflix.com',
+            'https://facebook.com',
+            'https://instagram.com',
+            'https://medium.com',
+            'https://discord.com',
+            'https://twitch.tv'
+        ];
+        
+        const textarea = document.getElementById('urlTextarea');
+        if (textarea) {
+            textarea.value = commonSites.join('\n');
+            textarea.focus();
+        }
+    }
+
+    addPopularSitesToPaste() {
+        const textarea = document.getElementById('urlTextarea');
+        const currentValue = textarea.value.trim();
+        const popularSites = [
+            'https://google.com',
+            'https://youtube.com',
+            'https://github.com',
+            'https://stackoverflow.com',
+            'https://reddit.com'
+        ];
+        
+        const newValue = currentValue ? 
+            currentValue + '\n' + popularSites.join('\n') : 
+            popularSites.join('\n');
+            
+        textarea.value = newValue;
+        textarea.focus();
+    }
+
+    // Enhanced clipboard detection and assistance
+    async checkClipboardForUrls() {
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const clipboardText = await navigator.clipboard.readText();
+                if (clipboardText) {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const urls = clipboardText.match(urlRegex);
+                    
+                    if (urls && urls.length > 0) {
+                        const useClipboard = confirm(
+                            `Found ${urls.length} URLs in your clipboard. Would you like to use them?`
+                        );
+                        
+                        if (useClipboard) {
+                            const textarea = document.getElementById('urlTextarea');
+                            textarea.value = urls.join('\n');
+                            this.showUrlPasteArea();
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Clipboard access not available:', error);
+        }
+        return false;
+    }
+
+    // Auto-detect and suggest browser history methods
+    suggestBestMethod() {
+        const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        const isEdge = /Edg/.test(navigator.userAgent);
+        const isFirefox = /Firefox/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        
+        let suggestion = '';
+        
+        if (isChrome) {
+            suggestion = "Chrome detected! Try: New tab → copy from 'Shortcuts' section";
+        } else if (isEdge) {
+            suggestion = "Edge detected! Try: New tab → copy from 'Top sites' or use Collections";
+        } else if (isFirefox) {
+            suggestion = "Firefox detected! Try: New tab → copy from 'Top Sites' tiles";
+        } else if (isSafari) {
+            suggestion = "Safari detected! Try: New tab → copy from 'Frequently Visited'";
+        } else {
+            suggestion = "Try: Open new tab and copy URLs from your browser's start page";
+        }
+        
+        return suggestion;
+    }
 }
 
 // Initialize the application when the page loads
+let browserHistoryMap;
 document.addEventListener('DOMContentLoaded', () => {
-    new BrowserHistoryMap();
+    browserHistoryMap = new BrowserHistoryMap();
 });
 
 // Add some utility functions for enhanced functionality
