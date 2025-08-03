@@ -7,18 +7,15 @@
 
   // Check if we're on the Browser History Map web app
   const isHistoryMapApp = window.location.hostname.includes('github.io') && 
-                         (window.location.pathname.includes('browser-history-map') || 
-                          document.title.includes('Browser History Map'));
+                         window.location.pathname.includes('browser-history-map');
 
   if (isHistoryMapApp) {
     console.log('Browser History Map Exporter: Detected web app');
     
-    // Wait for the page to fully load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeExtensionIntegration);
-    } else {
+    // Wait for the page to fully load and then check for data
+    setTimeout(() => {
       initializeExtensionIntegration();
-    }
+    }, 1000);
   }
 
   function initializeExtensionIntegration() {
@@ -31,6 +28,9 @@
         if (dataAge < maxAge) {
           // Data is fresh, offer to import it
           showImportDialog(result.historyMapData);
+          
+          // Clear the data after showing dialog to prevent repeated imports
+          chrome.storage.local.remove(['historyMapData', 'dataTimestamp']);
         }
       }
     });

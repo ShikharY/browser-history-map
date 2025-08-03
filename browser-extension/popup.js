@@ -77,25 +77,42 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       if (response.success) {
+        showStatus('Data exported successfully! Opening web app...', 'info');
+        
         // Store data for the web app to access
         await chrome.storage.local.set({
           'historyMapData': response.data,
           'dataTimestamp': Date.now()
         });
 
+        // Add small delay to ensure data is stored
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Open web app
-        await chrome.runtime.sendMessage({ action: 'openWebApp' });
+        const tabs = await chrome.tabs.query({url: '*://shikhary.github.io/browser-history-map*'});
         
-        showStatus(`✅ Data prepared! Opening web app with ${response.data.data.length} entries...`, 'success');
+        if (tabs.length > 0) {
+          // If web app is already open, switch to it and refresh
+          await chrome.tabs.update(tabs[0].id, {active: true});
+          await chrome.tabs.reload(tabs[0].id);
+          showStatus(`✅ Switched to existing tab and refreshed with ${response.data.data.length} entries!`, 'success');
+        } else {
+          // Open new tab
+          await chrome.tabs.create({
+            url: 'https://shikhary.github.io/browser-history-map/'
+          });
+          showStatus(`✅ Opening web app with ${response.data.data.length} entries...`, 'success');
+        }
         
         // Close popup after a delay
         setTimeout(() => {
           window.close();
-        }, 1500);
+        }, 2000);
       } else {
         showStatus('❌ Error: ' + response.error, 'error');
       }
     } catch (error) {
+      console.error('Send to web app error:', error);
       showStatus('❌ Unexpected error: ' + error.message, 'error');
     } finally {
       showLoading(false);
