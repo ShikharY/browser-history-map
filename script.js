@@ -504,7 +504,7 @@ class BrowserHistoryMap {
         
         try {
             console.log('Access browser history called'); // Debug log
-            button.textContent = 'Opening Smart Guide...';
+            button.textContent = 'Requesting Permission...';
             button.disabled = true;
 
             // Detect browser type
@@ -515,11 +515,13 @@ class BrowserHistoryMap {
             
             console.log('Browser detection:', { isChrome, isEdge, isFirefox, isSafari }); // Debug log
             
-            // Try newer web APIs first
-            await this.tryModernBrowserAPIs();
+            // Try automatic permission-based access first
+            const automaticSuccess = await this.tryModernBrowserAPIs();
             
-            // Always show enhanced guidance
-            this.showEnhancedBrowserGuidance(isChrome, isEdge, isFirefox, isSafari);
+            if (!automaticSuccess) {
+                // Show enhanced guidance if automatic access fails
+                this.showEnhancedBrowserGuidance(isChrome, isEdge, isFirefox, isSafari);
+            }
             
         } catch (error) {
             console.error('Browser history access failed:', error);
@@ -532,9 +534,19 @@ class BrowserHistoryMap {
     }
 
     async tryModernBrowserAPIs() {
-        // Try to use newer browser APIs for limited history access
+        // Try direct browser history access with permission
         const results = [];
         
+        try {
+            // First try the most powerful method - direct history access
+            const historyData = await this.requestBrowserHistoryPermission();
+            if (historyData && historyData.length > 0) {
+                return true; // History was already processed in the permission method
+            }
+        } catch (e) {
+            console.log('Direct history access failed:', e);
+        }
+
         try {
             // Navigation API (limited support but provides some recent navigation info)
             if ('navigation' in window) {
@@ -622,6 +634,951 @@ class BrowserHistoryMap {
         }
         
         return false;
+    }
+
+    async requestBrowserHistoryPermission() {
+        return new Promise((resolve, reject) => {
+            // Create an elegant permission modal
+            const permissionModal = this.createPermissionModal();
+            document.body.appendChild(permissionModal);
+
+            // Set up modal event handlers
+            const allowBtn = permissionModal.querySelector('.allow-permission');
+            const denyBtn = permissionModal.querySelector('.deny-permission');
+            const closeBtn = permissionModal.querySelector('.close-permission');
+
+            const cleanup = () => {
+                document.body.removeChild(permissionModal);
+            };
+
+            allowBtn.addEventListener('click', async () => {
+                cleanup();
+                try {
+                    const historyData = await this.accessBrowserHistoryWithPermission();
+                    resolve(historyData);
+                } catch (error) {
+                    console.log('History access failed after permission:', error);
+                    reject(error);
+                }
+            });
+
+            denyBtn.addEventListener('click', () => {
+                cleanup();
+                // Show a friendly message about alternatives
+                this.showAlternativesAfterDenial();
+                resolve(null);
+            });
+
+            closeBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(null);
+            });
+
+            // Auto-close after 30 seconds
+            setTimeout(() => {
+                if (document.body.contains(permissionModal)) {
+                    cleanup();
+                    resolve(null);
+                }
+            }, 30000);
+        });
+    }
+
+    createPermissionModal() {
+        const modal = document.createElement('div');
+        modal.className = 'permission-modal';
+        modal.innerHTML = `
+            <div class="permission-content">
+                <div class="permission-header">
+                    <h3>🔐 Browser History Access</h3>
+                    <button class="close-permission">×</button>
+                </div>
+                <div class="permission-body">
+                    <div class="permission-icon">🗺️</div>
+                    <h4>Request limited browser data access?</h4>
+                    <div class="reality-check">
+                        <h5>⚠️ Important Limitation:</h5>
+                        <p>Due to browser security, web pages can only access very limited data (typically 1-3 URLs). For your complete browsing history, you'll need to use manual methods.</p>
+                    </div>
+                    <div class="permission-benefits">
+                        <div class="benefit">
+                            <span class="benefit-icon">🔍</span>
+                            <span>Access current page and referrer URLs</span>
+                        </div>
+                        <div class="benefit">
+                            <span class="benefit-icon">🔒</span>
+                            <span>Data stays on your device - 100% private</span>
+                        </div>
+                        <div class="benefit">
+                            <span class="benefit-icon">📊</span>
+                            <span>Demonstration of how the visualization works</span>
+                        </div>
+                        <div class="benefit">
+                            <span class="benefit-icon">🎯</span>
+                            <span>Get guidance for accessing your full history</span>
+                        </div>
+                    </div>
+                    <div class="permission-privacy">
+                        <h5>🛡️ Why So Limited?</h5>
+                        <ul>
+                            <li>Browsers protect your privacy by restricting history access</li>
+                            <li>Only browser extensions can access full history with permissions</li>
+                            <li>Web pages are limited to current session data</li>
+                            <li>This is a security feature, not a bug!</li>
+                        </ul>
+                    </div>
+                    <div class="permission-note">
+                        <p><strong>Recommendation:</strong> Try this limited access first, then use the Smart Copy-Paste method for your complete history.</p>
+                    </div>
+                </div>
+                <div class="permission-footer">
+                    <button class="allow-permission">� Try Limited Access</button>
+                    <button class="deny-permission">❌ Skip to Manual Methods</button>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .permission-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2000;
+                font-family: 'Poppins', sans-serif;
+                backdrop-filter: blur(5px);
+            }
+            .permission-content {
+                background: white;
+                border-radius: 20px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 85vh;
+                overflow-y: auto;
+                animation: permissionSlideIn 0.4s ease-out;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            }
+            @keyframes permissionSlideIn {
+                from { opacity: 0; transform: translateY(-30px) scale(0.9); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .permission-header {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 25px;
+                border-radius: 20px 20px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .permission-header h3 {
+                margin: 0;
+                font-weight: 700;
+                font-size: 1.3rem;
+            }
+            .close-permission {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 35px;
+                height: 35px;
+                color: white;
+                font-size: 1.2rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .close-permission:hover {
+                background: rgba(255,255,255,0.3);
+                transform: rotate(90deg);
+            }
+            .permission-body {
+                padding: 30px;
+                text-align: center;
+            }
+            .permission-icon {
+                font-size: 4rem;
+                margin-bottom: 20px;
+            }
+            .permission-body h4 {
+                color: #333;
+                margin-bottom: 25px;
+                font-weight: 600;
+                font-size: 1.2rem;
+                line-height: 1.4;
+            }
+            .reality-check {
+                background: #fff3cd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #ffc107;
+                margin-bottom: 20px;
+                text-align: left;
+            }
+            .reality-check h5 {
+                margin: 0 0 10px 0;
+                color: #856404;
+                font-weight: 700;
+                font-size: 1rem;
+            }
+            .reality-check p {
+                margin: 0;
+                color: #856404;
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            .permission-benefits {
+                margin-bottom: 25px;
+                text-align: left;
+            }
+            .benefit {
+                display: flex;
+                align-items: center;
+                margin-bottom: 12px;
+                padding: 10px;
+                background: #f8f9ff;
+                border-radius: 8px;
+                border-left: 3px solid #667eea;
+            }
+            .benefit-icon {
+                font-size: 1.2rem;
+                margin-right: 12px;
+                flex-shrink: 0;
+            }
+            .permission-privacy {
+                background: #e8f5e8;
+                padding: 20px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                text-align: left;
+            }
+            .permission-privacy h5 {
+                margin: 0 0 15px 0;
+                color: #155724;
+                font-weight: 700;
+            }
+            .permission-privacy ul {
+                margin: 0;
+                padding-left: 20px;
+            }
+            .permission-privacy li {
+                margin-bottom: 8px;
+                color: #155724;
+                line-height: 1.4;
+            }
+            .permission-note {
+                background: #fff3cd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #ffc107;
+                margin-bottom: 20px;
+            }
+            .permission-note p {
+                margin: 0;
+                color: #856404;
+                font-size: 0.9rem;
+            }
+            .permission-footer {
+                padding: 25px 30px;
+                border-top: 1px solid #eee;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+            }
+            .allow-permission, .deny-permission {
+                padding: 15px 30px;
+                border: none;
+                border-radius: 25px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 140px;
+            }
+            .allow-permission {
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white;
+            }
+            .allow-permission:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            }
+            .deny-permission {
+                background: #6c757d;
+                color: white;
+            }
+            .deny-permission:hover {
+                background: #5a6268;
+                transform: translateY(-1px);
+            }
+            @media (max-width: 600px) {
+                .permission-content {
+                    width: 95%;
+                    margin: 20px;
+                }
+                .permission-body {
+                    padding: 20px;
+                }
+                .permission-footer {
+                    flex-direction: column;
+                }
+                .allow-permission, .deny-permission {
+                    width: 100%;
+                    margin-bottom: 10px;
+                }
+            }
+        `;
+        
+        if (!document.querySelector('#permission-modal-styles')) {
+            style.id = 'permission-modal-styles';
+            document.head.appendChild(style);
+        }
+
+        return modal;
+    }
+
+    async accessBrowserHistoryWithPermission() {
+        // Show a realistic explanation about browser security limitations
+        const limitationModal = this.createSecurityLimitationModal();
+        document.body.appendChild(limitationModal);
+        
+        // Try the limited methods available to web pages
+        const historyData = [];
+        
+        try {
+            // Method 1: Chrome Extension API (only works in browser extensions, not web pages)
+            if (typeof chrome !== 'undefined' && chrome.history) {
+                console.log('Chrome Extension API detected - this would work in an extension');
+                // This code only works in browser extensions, not regular web pages
+                const results = await new Promise((resolve, reject) => {
+                    chrome.history.search({
+                        text: '',
+                        maxResults: 1000,
+                        startTime: Date.now() - (90 * 24 * 60 * 60 * 1000)
+                    }, (historyItems) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(historyItems);
+                        }
+                    });
+                });
+                
+                results.forEach(item => {
+                    historyData.push({
+                        url: item.url,
+                        title: item.title,
+                        visit_count: item.visitCount || 1,
+                        last_visit_time: new Date(item.lastVisitTime).toISOString()
+                    });
+                });
+            }
+        } catch (e) {
+            console.log('Chrome Extension API not available in web page context:', e);
+        }
+
+        // Method 2: Limited web APIs (these only provide very limited data)
+        try {
+            // Current page URL
+            historyData.push({
+                url: window.location.href,
+                title: document.title,
+                visit_count: 1,
+                last_visit_time: new Date().toISOString()
+            });
+
+            // Referrer (if available)
+            if (document.referrer) {
+                historyData.push({
+                    url: document.referrer,
+                    title: 'Referrer Page',
+                    visit_count: 1,
+                    last_visit_time: new Date().toISOString()
+                });
+            }
+
+            // Check session storage for any URL hints
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                if (value && typeof value === 'string') {
+                    const urlMatches = value.match(/https?:\/\/[^\s"'<>]+/g);
+                    if (urlMatches) {
+                        urlMatches.forEach(url => {
+                            if (url.length > 10) { // Filter out very short matches
+                                historyData.push({
+                                    url: url,
+                                    title: this.extractDomainFromUrl(url),
+                                    visit_count: 1,
+                                    last_visit_time: new Date().toISOString()
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('Limited web API data collection failed:', e);
+        }
+
+        // Remove duplicates
+        const uniqueHistoryData = historyData.filter((item, index, self) =>
+            index === self.findIndex(t => t.url === item.url)
+        );
+
+        if (uniqueHistoryData.length > 0) {
+            console.log(`Retrieved ${uniqueHistoryData.length} URLs from limited web APIs`);
+            
+            // Show explanation about the limitations
+            setTimeout(() => {
+                this.showSecurityExplanation(uniqueHistoryData.length);
+            }, 2000);
+            
+            this.processHistoryData(uniqueHistoryData);
+            return uniqueHistoryData;
+        } else {
+            console.log('No history data accessible via web page APIs');
+            throw new Error('Browser security prevents direct history access from web pages');
+        }
+    }
+
+    createSecurityLimitationModal() {
+        const modal = document.createElement('div');
+        modal.className = 'security-limitation-modal';
+        modal.innerHTML = `
+            <div class="security-content">
+                <div class="security-header">
+                    <h3>🔒 Browser Security Notice</h3>
+                </div>
+                <div class="security-body">
+                    <div class="security-icon">🛡️</div>
+                    <h4>Why Can't We Access Your Full Browser History?</h4>
+                    <div class="security-explanation">
+                        <div class="security-point">
+                            <span class="point-icon">🔐</span>
+                            <span><strong>Privacy Protection:</strong> Browsers prevent websites from accessing your browsing history to protect your privacy</span>
+                        </div>
+                        <div class="security-point">
+                            <span class="point-icon">🚫</span>
+                            <span><strong>Security Policy:</strong> Only browser extensions with explicit permissions can access history</span>
+                        </div>
+                        <div class="security-point">
+                            <span class="point-icon">📊</span>
+                            <span><strong>Limited Data:</strong> Web pages can only see the current page and referrer</span>
+                        </div>
+                    </div>
+                    <div class="auto-close-notice">
+                        <p>This modal will close automatically. Attempting to access available data...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .security-limitation-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2500;
+                font-family: 'Poppins', sans-serif;
+            }
+            .security-content {
+                background: white;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                animation: securitySlideIn 0.4s ease-out;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            }
+            @keyframes securitySlideIn {
+                from { opacity: 0; transform: translateY(-30px) scale(0.9); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .security-header {
+                background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+                color: white;
+                padding: 20px;
+                border-radius: 15px 15px 0 0;
+                text-align: center;
+            }
+            .security-header h3 {
+                margin: 0;
+                font-weight: 700;
+                font-size: 1.3rem;
+            }
+            .security-body {
+                padding: 25px;
+                text-align: center;
+            }
+            .security-icon {
+                font-size: 3rem;
+                margin-bottom: 15px;
+            }
+            .security-body h4 {
+                color: #333;
+                margin-bottom: 20px;
+                font-weight: 600;
+            }
+            .security-explanation {
+                text-align: left;
+                margin-bottom: 20px;
+            }
+            .security-point {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 15px;
+                padding: 12px;
+                background: #fff5f5;
+                border-radius: 8px;
+                border-left: 3px solid #ff6b6b;
+            }
+            .point-icon {
+                font-size: 1.2rem;
+                margin-right: 12px;
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+            .auto-close-notice {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #2196f3;
+            }
+            .auto-close-notice p {
+                margin: 0;
+                color: #1565c0;
+                font-size: 0.9rem;
+                font-style: italic;
+            }
+        `;
+        
+        if (!document.querySelector('#security-modal-styles')) {
+            style.id = 'security-modal-styles';
+            document.head.appendChild(style);
+        }
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (document.body.contains(modal)) {
+                document.body.removeChild(modal);
+            }
+        }, 3000);
+
+        return modal;
+    }
+
+    showSecurityExplanation(foundUrls) {
+        const modal = document.createElement('div');
+        modal.className = 'explanation-modal';
+        modal.innerHTML = `
+            <div class="explanation-content">
+                <div class="explanation-header">
+                    <h3>📊 Limited Data Retrieved</h3>
+                    <button class="close-explanation" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="explanation-body">
+                    <div class="result-summary">
+                        <div class="result-icon">📈</div>
+                        <h4>Found ${foundUrls} URL${foundUrls !== 1 ? 's' : ''} from available sources</h4>
+                        <p>This is only a tiny fraction of your actual browsing history due to browser security restrictions.</p>
+                    </div>
+                    
+                    <div class="better-options">
+                        <h5>🚀 For Complete History Visualization:</h5>
+                        <div class="option-grid">
+                            <div class="option-card">
+                                <span class="opt-icon">📋</span>
+                                <div>
+                                    <strong>Smart Copy-Paste</strong>
+                                    <p>Get URLs from your browser's new tab page</p>
+                                </div>
+                                <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="opt-btn">Try Now</button>
+                            </div>
+                            
+                            <div class="option-card">
+                                <span class="opt-icon">📁</span>
+                                <div>
+                                    <strong>Export & Upload</strong>
+                                    <p>Export history from browser settings</p>
+                                </div>
+                                <button onclick="browserHistoryMap.showEnhancedBrowserGuidance(true, true, true, true); this.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="opt-btn">Guide Me</button>
+                            </div>
+                            
+                            <div class="option-card">
+                                <span class="opt-icon">🎮</span>
+                                <div>
+                                    <strong>Demo Mode</strong>
+                                    <p>Explore with sample data</p>
+                                </div>
+                                <button onclick="browserHistoryMap.loadDemoData(); this.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="opt-btn">Load Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="future-note">
+                        <h5>🔮 Future Possibilities:</h5>
+                        <p>We're working on a browser extension that will provide full history access with proper permissions. This would allow one-click import of your complete browsing history!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .explanation-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2001;
+                font-family: 'Poppins', sans-serif;
+            }
+            .explanation-content {
+                background: white;
+                border-radius: 20px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 85vh;
+                overflow-y: auto;
+                animation: explanationSlideIn 0.4s ease-out;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            }
+            @keyframes explanationSlideIn {
+                from { opacity: 0; transform: translateY(-30px) scale(0.9); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .explanation-header {
+                background: linear-gradient(135deg, #2196f3, #1976d2);
+                color: white;
+                padding: 25px;
+                border-radius: 20px 20px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .explanation-header h3 {
+                margin: 0;
+                font-weight: 700;
+                font-size: 1.3rem;
+            }
+            .close-explanation {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 35px;
+                height: 35px;
+                color: white;
+                font-size: 1.2rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .close-explanation:hover {
+                background: rgba(255,255,255,0.3);
+                transform: rotate(90deg);
+            }
+            .explanation-body {
+                padding: 30px;
+            }
+            .result-summary {
+                text-align: center;
+                margin-bottom: 30px;
+                padding: 25px;
+                background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+                border-radius: 15px;
+                border-left: 5px solid #ff9800;
+            }
+            .result-icon {
+                font-size: 3rem;
+                margin-bottom: 15px;
+            }
+            .result-summary h4 {
+                color: #e65100;
+                margin-bottom: 10px;
+                font-weight: 700;
+            }
+            .result-summary p {
+                color: #bf360c;
+                margin: 0;
+                font-size: 0.95rem;
+            }
+            .better-options h5 {
+                color: #333;
+                margin-bottom: 20px;
+                font-weight: 700;
+            }
+            .option-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 15px;
+                margin-bottom: 25px;
+            }
+            .option-card {
+                border: 2px solid #e3f2fd;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+                transition: all 0.3s ease;
+                background: white;
+            }
+            .option-card:hover {
+                border-color: #2196f3;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 20px rgba(33, 150, 243, 0.2);
+            }
+            .opt-icon {
+                font-size: 2rem;
+                display: block;
+                margin-bottom: 10px;
+            }
+            .option-card strong {
+                display: block;
+                color: #1976d2;
+                margin-bottom: 8px;
+                font-weight: 600;
+            }
+            .option-card p {
+                color: #666;
+                font-size: 0.85rem;
+                margin-bottom: 15px;
+                line-height: 1.4;
+            }
+            .opt-btn {
+                background: #2196f3;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 500;
+            }
+            .opt-btn:hover {
+                background: #1976d2;
+                transform: translateY(-1px);
+            }
+            .future-note {
+                background: #f3e5f5;
+                padding: 20px;
+                border-radius: 12px;
+                border-left: 4px solid #9c27b0;
+            }
+            .future-note h5 {
+                margin: 0 0 10px 0;
+                color: #6a1b9a;
+                font-weight: 700;
+            }
+            .future-note p {
+                margin: 0;
+                color: #4a148c;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+            @media (max-width: 600px) {
+                .option-grid {
+                    grid-template-columns: 1fr;
+                }
+                .explanation-body {
+                    padding: 20px;
+                }
+            }
+        `;
+        
+        if (!document.querySelector('#explanation-modal-styles')) {
+            style.id = 'explanation-modal-styles';
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(modal);
+    }
+
+    showAlternativesAfterDenial() {
+        const modal = document.createElement('div');
+        modal.className = 'alternatives-modal';
+        modal.innerHTML = `
+            <div class="alternatives-content">
+                <div class="alternatives-header">
+                    <h3>🛠️ No Problem! Try These Easy Alternatives</h3>
+                    <button class="close-alternatives" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="alternatives-body">
+                    <div class="alternative-option">
+                        <div class="alt-icon">📋</div>
+                        <div class="alt-content">
+                            <h4>Smart Copy-Paste</h4>
+                            <p>Use our intelligent paste tool with auto-detection</p>
+                            <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="alt-btn">Try Smart Paste</button>
+                        </div>
+                    </div>
+                    
+                    <div class="alternative-option">
+                        <div class="alt-icon">🎮</div>
+                        <div class="alt-content">
+                            <h4>Demo Mode</h4>
+                            <p>Explore with sample data to see how it works</p>
+                            <button onclick="browserHistoryMap.loadDemoData(); this.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="alt-btn">Load Demo</button>
+                        </div>
+                    </div>
+                    
+                    <div class="alternative-option">
+                        <div class="alt-icon">📁</div>
+                        <div class="alt-content">
+                            <h4>File Upload</h4>
+                            <p>Drag & drop your exported browser history file</p>
+                            <button onclick="document.getElementById('uploadArea').click(); this.parentElement.parentElement.parentElement.parentElement.parentElement.remove();" class="alt-btn">Upload File</button>
+                        </div>
+                    </div>
+
+                    <div class="alternatives-tip">
+                        <p><strong>💡 Pro Tip:</strong> The Smart Copy-Paste method is usually the fastest! Just open a new browser tab and copy URLs from your start page.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add styles for alternatives modal
+        const style = document.createElement('style');
+        style.textContent = `
+            .alternatives-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2001;
+                font-family: 'Poppins', sans-serif;
+            }
+            .alternatives-content {
+                background: white;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                animation: altSlideIn 0.3s ease-out;
+                box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            }
+            @keyframes altSlideIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .alternatives-header {
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                padding: 20px;
+                border-radius: 15px 15px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .alternatives-header h3 {
+                margin: 0;
+                font-weight: 600;
+                font-size: 1.2rem;
+            }
+            .close-alternatives {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .close-alternatives:hover {
+                background: rgba(255,255,255,0.3);
+            }
+            .alternatives-body {
+                padding: 25px;
+            }
+            .alternative-option {
+                display: flex;
+                align-items: center;
+                padding: 15px;
+                margin-bottom: 15px;
+                border: 2px solid #f0f0f0;
+                border-radius: 10px;
+                transition: all 0.3s ease;
+            }
+            .alternative-option:hover {
+                border-color: #4CAF50;
+                background: #f9fff9;
+            }
+            .alt-icon {
+                font-size: 2rem;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+            .alt-content {
+                flex: 1;
+            }
+            .alt-content h4 {
+                margin: 0 0 5px 0;
+                color: #333;
+                font-weight: 600;
+            }
+            .alt-content p {
+                margin: 0 0 10px 0;
+                color: #666;
+                font-size: 0.9rem;
+            }
+            .alt-btn {
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .alt-btn:hover {
+                background: #45a049;
+                transform: translateY(-1px);
+            }
+            .alternatives-tip {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #2196F3;
+                margin-top: 20px;
+            }
+            .alternatives-tip p {
+                margin: 0;
+                color: #1565C0;
+                font-size: 0.9rem;
+            }
+        `;
+        
+        if (!document.querySelector('#alternatives-modal-styles')) {
+            style.id = 'alternatives-modal-styles';
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(modal);
     }
 
     showEnhancedBrowserGuidance(isChrome, isEdge, isFirefox, isSafari) {
