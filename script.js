@@ -39,6 +39,7 @@ class BrowserHistoryMap {
 
         // Quick access methods
         document.getElementById('accessChromeHistory').addEventListener('click', () => {
+            console.log('Show Guide button clicked'); // Debug log
             this.accessBrowserHistory();
         });
 
@@ -502,7 +503,8 @@ class BrowserHistoryMap {
         const originalText = button.textContent;
         
         try {
-            button.textContent = 'Checking Browser Capabilities...';
+            console.log('Access browser history called'); // Debug log
+            button.textContent = 'Checking Browser...';
             button.disabled = true;
 
             // Detect browser type
@@ -510,16 +512,20 @@ class BrowserHistoryMap {
             const isEdge = /Edg/.test(navigator.userAgent);
             const isFirefox = /Firefox/.test(navigator.userAgent);
             
+            console.log('Browser detection:', { isChrome, isEdge, isFirefox }); // Debug log
+            
             // Check if we're in an extension context or have special permissions
             if (typeof chrome !== 'undefined' && chrome.history) {
+                console.log('Chrome extension context detected');
                 await this.accessChromeHistory();
             } else {
+                console.log('Showing browser-specific guidance');
                 // Show browser-specific guidance
                 this.showBrowserSpecificGuidance(isChrome, isEdge, isFirefox);
             }
         } catch (error) {
             console.error('Browser history access failed:', error);
-            this.showHistoryAccessFallback();
+            alert('Error: ' + error.message + '\n\nPlease try the "Paste URLs" method instead.');
         } finally {
             button.textContent = originalText;
             button.disabled = false;
@@ -527,6 +533,8 @@ class BrowserHistoryMap {
     }
 
     showBrowserSpecificGuidance(isChrome, isEdge, isFirefox) {
+        console.log('Showing browser guidance modal'); // Debug log
+        
         let browserName = 'your browser';
         let specificInstructions = '';
         
@@ -619,45 +627,89 @@ class BrowserHistoryMap {
                     </div>
                 </div>
             `;
+        } else {
+            // Fallback for other browsers
+            specificInstructions = `
+                <div class="browser-specific-guide">
+                    <h4>🌐 Browser History Quick Access</h4>
+                    <div class="quick-steps">
+                        <div class="step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <strong>Open History:</strong> Look for History in your browser menu or press <kbd>Ctrl + H</kbd>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <strong>Copy URLs:</strong> Right-click on entries and copy the URLs
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
-        const modal = document.createElement('div');
-        modal.className = 'browser-guidance-modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🚀 Quick Access for ${browserName}</h3>
-                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="security-notice">
-                        <p><strong>🔒 Browser Security:</strong> For privacy protection, browsers don't allow websites to directly access your history. But we can make it super easy!</p>
+        try {
+            const modal = document.createElement('div');
+            modal.className = 'browser-guidance-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>🚀 Quick Access for ${browserName}</h3>
+                        <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
                     </div>
-                    
-                    ${specificInstructions}
-                    
-                    <div class="alternative-methods">
-                        <h4>🎯 Even Easier Alternatives:</h4>
-                        <div class="alt-method">
-                            <strong>📱 Most Visited:</strong> Look for "Most visited" or "Frequently visited" in your browser and copy those URLs
+                    <div class="modal-body">
+                        <div class="security-notice">
+                            <p><strong>🔒 Browser Security:</strong> For privacy protection, browsers don't allow websites to directly access your history. But we can make it super easy!</p>
                         </div>
-                        <div class="alt-method">
-                            <strong>🔖 Bookmarks:</strong> Export bookmarks and paste the URLs here
-                        </div>
-                        <div class="alt-method">
-                            <strong>📝 Address Bar:</strong> Type in your address bar and copy suggestions that appear
+                        
+                        ${specificInstructions}
+                        
+                        <div class="alternative-methods">
+                            <h4>🎯 Even Easier Alternatives:</h4>
+                            <div class="alt-method">
+                                <strong>📱 Most Visited:</strong> Look for "Most visited" or "Frequently visited" in your browser and copy those URLs
+                            </div>
+                            <div class="alt-method">
+                                <strong>🔖 Bookmarks:</strong> Export bookmarks and paste the URLs here
+                            </div>
+                            <div class="alt-method">
+                                <strong>📝 Address Bar:</strong> Type in your address bar and copy suggestions that appear
+                            </div>
                         </div>
                     </div>
+                    <div class="modal-footer">
+                        <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.remove();" class="demo-btn">📋 Open Paste Area</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="cancel-btn">Got it!</button>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.remove();" class="demo-btn">📋 Open Paste Area</button>
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="cancel-btn">Got it!</button>
-                </div>
-            </div>
-        `;
+            `;
 
-        // Enhanced modal styles
+            // Add CSS if not already added
+            if (!document.querySelector('#browser-guidance-styles')) {
+                this.addBrowserGuidanceStyles();
+            }
+            
+            document.body.appendChild(modal);
+            console.log('Modal added to page'); // Debug log
+            
+        } catch (error) {
+            console.error('Error creating modal:', error);
+            // Fallback to simple alert
+            alert(`Quick Guide for ${browserName}:\n\n1. Press Ctrl+H to open history\n2. Copy URLs from your history\n3. Use the "Paste URLs" button above\n4. Paste and process your URLs!`);
+        }
+    }
+
+    addBrowserGuidanceStyles() {
         const style = document.createElement('style');
+        style.id = 'browser-guidance-styles';
         style.textContent = `
             .browser-guidance-modal {
                 position: fixed;
@@ -852,7 +904,6 @@ class BrowserHistoryMap {
         `;
         
         document.head.appendChild(style);
-        document.body.appendChild(modal);
     }
 
     async accessChromeHistory() {
