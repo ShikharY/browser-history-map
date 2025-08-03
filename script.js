@@ -498,113 +498,367 @@ class BrowserHistoryMap {
 
     // New seamless access methods
     async accessBrowserHistory() {
+        const button = document.getElementById('accessChromeHistory');
+        const originalText = button.textContent;
+        
         try {
-            // Check if the History API is available (Chrome extension context)
-            if ('chrome' in window && chrome.history) {
+            button.textContent = 'Checking Browser Capabilities...';
+            button.disabled = true;
+
+            // Detect browser type
+            const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            const isEdge = /Edg/.test(navigator.userAgent);
+            const isFirefox = /Firefox/.test(navigator.userAgent);
+            
+            // Check if we're in an extension context or have special permissions
+            if (typeof chrome !== 'undefined' && chrome.history) {
                 await this.accessChromeHistory();
             } else {
-                // Fallback to Web History API (limited but available)
-                await this.accessWebHistory();
+                // Show browser-specific guidance
+                this.showBrowserSpecificGuidance(isChrome, isEdge, isFirefox);
             }
         } catch (error) {
             console.error('Browser history access failed:', error);
             this.showHistoryAccessFallback();
+        } finally {
+            button.textContent = originalText;
+            button.disabled = false;
         }
+    }
+
+    showBrowserSpecificGuidance(isChrome, isEdge, isFirefox) {
+        let browserName = 'your browser';
+        let specificInstructions = '';
+        
+        if (isEdge) {
+            browserName = 'Microsoft Edge';
+            specificInstructions = `
+                <div class="browser-specific-guide">
+                    <h4>🌐 Microsoft Edge Quick Access</h4>
+                    <div class="quick-steps">
+                        <div class="step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <strong>Open History:</strong> Press <kbd>Ctrl + H</kbd> or click the ⋯ menu → History
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <strong>Copy URLs:</strong> Right-click on any site and "Copy link" or select and copy from address bar
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above to add them to your map
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edge-tips">
+                        <h5>💡 Edge Pro Tips:</h5>
+                        <ul>
+                            <li>Use "Most visited" section for your top sites</li>
+                            <li>Check your "Collections" for organized links</li>
+                            <li>Export favorites and paste the URLs here</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        } else if (isChrome) {
+            browserName = 'Google Chrome';
+            specificInstructions = `
+                <div class="browser-specific-guide">
+                    <h4>🌐 Google Chrome Quick Access</h4>
+                    <div class="quick-steps">
+                        <div class="step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <strong>Open History:</strong> Press <kbd>Ctrl + H</kbd> or chrome://history/
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <strong>Copy URLs:</strong> Click on any entry and copy the URL, or use the search box
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (isFirefox) {
+            browserName = 'Mozilla Firefox';
+            specificInstructions = `
+                <div class="browser-specific-guide">
+                    <h4>🦊 Mozilla Firefox Quick Access</h4>
+                    <div class="quick-steps">
+                        <div class="step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <strong>Open History:</strong> Press <kbd>Ctrl + Shift + H</kbd> or Library button → History
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <strong>Copy URLs:</strong> Right-click entries and copy location
+                            </div>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <strong>Paste Here:</strong> Use the "📋 Paste URLs" button above
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'browser-guidance-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚀 Quick Access for ${browserName}</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="security-notice">
+                        <p><strong>🔒 Browser Security:</strong> For privacy protection, browsers don't allow websites to directly access your history. But we can make it super easy!</p>
+                    </div>
+                    
+                    ${specificInstructions}
+                    
+                    <div class="alternative-methods">
+                        <h4>🎯 Even Easier Alternatives:</h4>
+                        <div class="alt-method">
+                            <strong>📱 Most Visited:</strong> Look for "Most visited" or "Frequently visited" in your browser and copy those URLs
+                        </div>
+                        <div class="alt-method">
+                            <strong>🔖 Bookmarks:</strong> Export bookmarks and paste the URLs here
+                        </div>
+                        <div class="alt-method">
+                            <strong>📝 Address Bar:</strong> Type in your address bar and copy suggestions that appear
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="document.getElementById('pasteUrls').click(); this.parentElement.parentElement.parentElement.remove();" class="demo-btn">📋 Open Paste Area</button>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="cancel-btn">Got it!</button>
+                </div>
+            </div>
+        `;
+
+        // Enhanced modal styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .browser-guidance-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                font-family: 'Poppins', sans-serif;
+            }
+            .browser-guidance-modal .modal-content {
+                background: white;
+                border-radius: 15px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 85vh;
+                overflow-y: auto;
+                animation: modalSlideIn 0.3s ease-out;
+            }
+            @keyframes modalSlideIn {
+                from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .browser-guidance-modal .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 25px;
+                border-bottom: 1px solid #eee;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border-radius: 15px 15px 0 0;
+            }
+            .browser-guidance-modal .modal-header h3 {
+                margin: 0;
+                font-weight: 600;
+            }
+            .browser-guidance-modal .close-modal {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: white;
+                opacity: 0.8;
+                transition: opacity 0.2s;
+            }
+            .browser-guidance-modal .close-modal:hover {
+                opacity: 1;
+            }
+            .browser-guidance-modal .modal-body {
+                padding: 25px;
+            }
+            .security-notice {
+                background: #e8f4fd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #0066cc;
+                margin-bottom: 25px;
+            }
+            .security-notice p {
+                margin: 0;
+                color: #004d99;
+                line-height: 1.5;
+            }
+            .browser-specific-guide {
+                margin-bottom: 25px;
+            }
+            .browser-specific-guide h4 {
+                color: #333;
+                margin-bottom: 20px;
+                font-weight: 600;
+            }
+            .quick-steps {
+                margin-bottom: 20px;
+            }
+            .step {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 15px;
+                padding: 15px;
+                background: #f8f9ff;
+                border-radius: 8px;
+            }
+            .step-number {
+                background: #667eea;
+                color: white;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 0.9rem;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+            .step-content {
+                flex: 1;
+            }
+            .step-content strong {
+                color: #333;
+                display: block;
+                margin-bottom: 5px;
+            }
+            kbd {
+                background: #f4f4f4;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                padding: 2px 6px;
+                font-family: monospace;
+                font-size: 0.9em;
+            }
+            .edge-tips {
+                background: #f0f8ff;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #0078d4;
+            }
+            .edge-tips h5 {
+                margin: 0 0 10px 0;
+                color: #0078d4;
+                font-weight: 600;
+            }
+            .edge-tips ul {
+                margin: 0;
+                padding-left: 20px;
+            }
+            .edge-tips li {
+                margin-bottom: 5px;
+                color: #0078d4;
+                line-height: 1.4;
+            }
+            .alternative-methods {
+                background: #f8fff8;
+                padding: 20px;
+                border-radius: 8px;
+                border-left: 4px solid #28a745;
+            }
+            .alternative-methods h4 {
+                margin: 0 0 15px 0;
+                color: #155724;
+                font-weight: 600;
+            }
+            .alt-method {
+                margin-bottom: 12px;
+                padding: 10px;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #d4edda;
+            }
+            .alt-method strong {
+                color: #155724;
+            }
+            .browser-guidance-modal .modal-footer {
+                padding: 20px 25px;
+                border-top: 1px solid #eee;
+                text-align: center;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+            }
+            .browser-guidance-modal .demo-btn,
+            .browser-guidance-modal .cancel-btn {
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .browser-guidance-modal .demo-btn {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+            }
+            .browser-guidance-modal .demo-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            }
+            .browser-guidance-modal .cancel-btn {
+                background: #6c757d;
+                color: white;
+            }
+            .browser-guidance-modal .cancel-btn:hover {
+                background: #5a6268;
+            }
+        `;
+        
+        document.head.appendChild(style);
+        document.body.appendChild(modal);
     }
 
     async accessChromeHistory() {
-        // This would work in a Chrome extension context
-        const button = document.getElementById('accessChromeHistory');
-        button.textContent = 'Requesting Permission...';
-        button.disabled = true;
-
-        try {
-            // Request history permission
-            const results = await new Promise((resolve, reject) => {
-                chrome.history.search({
-                    text: '',
-                    maxResults: 1000,
-                    startTime: Date.now() - (30 * 24 * 60 * 60 * 1000) // Last 30 days
-                }, resolve);
-            });
-
-            const historyData = results.map(item => ({
-                url: item.url,
-                title: item.title,
-                visit_count: item.visitCount || 1,
-                last_visit_time: new Date(item.lastVisitTime).toISOString()
-            }));
-
-            this.processHistoryData(historyData);
-        } catch (error) {
-            throw new Error('Chrome History API not available');
-        } finally {
-            button.textContent = 'Access History';
-            button.disabled = false;
-        }
-    }
-
-    async accessWebHistory() {
-        // Limited web-based history access
-        const button = document.getElementById('accessChromeHistory');
-        button.textContent = 'Analyzing Recent Activity...';
-        button.disabled = true;
-
-        try {
-            // Use document.referrer and navigation API for limited history
-            const recentUrls = [];
-            
-            // Get current URL
-            if (window.location.href !== 'about:blank') {
-                recentUrls.push({
-                    url: window.location.href,
-                    title: document.title,
-                    visit_count: 1,
-                    last_visit_time: new Date().toISOString()
-                });
-            }
-
-            // Check if navigation API is available (newer browsers)
-            if ('navigation' in window) {
-                const entries = navigation.entries();
-                entries.forEach(entry => {
-                    if (entry.url && entry.url !== window.location.href) {
-                        recentUrls.push({
-                            url: entry.url,
-                            title: entry.url,
-                            visit_count: 1,
-                            last_visit_time: new Date().toISOString()
-                        });
-                    }
-                });
-            }
-
-            if (recentUrls.length === 0) {
-                throw new Error('No accessible history data');
-            }
-
-            this.processHistoryData(recentUrls);
-        } catch (error) {
-            throw new Error('Limited browser history access');
-        } finally {
-            button.textContent = 'Access History';
-            button.disabled = false;
-        }
-    }
-
-    showHistoryAccessFallback() {
-        alert(`
-Browser History Access Limited
-
-Due to browser security restrictions, direct history access is limited. Please try:
-
-1. 📋 Use the "Paste URLs" option below
-2. 🔗 Install our browser extension (coming soon)
-3. 📄 Export history manually and upload the file
-4. 🎯 Try the demo data to see how it works
-
-Modern browsers protect your privacy by limiting direct history access.
-        `.trim());
+        // This would only work in a Chrome extension context
+        // For regular web pages, we redirect to the guidance modal
+        throw new Error('Extension context required for direct API access');
     }
 
     showExtensionInfo() {
