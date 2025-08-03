@@ -29,12 +29,57 @@
         </header>
 
         <div class="upload-section">
+            <!-- Quick Access Methods -->
+            <div class="quick-access-section">
+                <h3>🚀 Quick Access Methods</h3>
+                <div class="access-methods">
+                    <div class="method-card">
+                        <div class="method-icon">🌐</div>
+                        <h4>Browser API (Chrome/Edge)</h4>
+                        <p>Directly access your history with one click</p>
+                        <button id="accessChromeHistory" class="method-btn">Access History</button>
+                        <small class="method-note">Requires permission approval</small>
+                    </div>
+                    
+                    <div class="method-card">
+                        <div class="method-icon">🔗</div>
+                        <h4>Browser Extension</h4>
+                        <p>Install our companion extension for seamless access</p>
+                        <button id="installExtension" class="method-btn">Get Extension</button>
+                        <small class="method-note">Most reliable method</small>
+                    </div>
+                    
+                    <div class="method-card">
+                        <div class="method-icon">📋</div>
+                        <h4>Copy-Paste URL List</h4>
+                        <p>Paste a list of URLs from any source</p>
+                        <button id="pasteUrls" class="method-btn">Paste URLs</button>
+                        <small class="method-note">Quick and simple</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URL Paste Area (Hidden by default) -->
+            <div class="url-paste-section" id="urlPasteSection" style="display: none;">
+                <h3>📋 Paste Your URLs</h3>
+                <textarea id="urlTextarea" placeholder="Paste your URLs here, one per line:
+https://google.com
+https://youtube.com
+https://github.com
+..."></textarea>
+                <div class="paste-controls">
+                    <button id="processUrls" class="demo-btn">🔍 Process URLs</button>
+                    <button id="cancelPaste" class="cancel-btn">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Traditional File Upload -->
             <div class="upload-area" id="uploadArea">
                 <div class="upload-content">
                     <svg class="upload-icon" viewBox="0 0 24 24" width="48" height="48">
                         <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                     </svg>
-                    <h3>Upload Your Browser History</h3>
+                    <h3>Or Upload a File</h3>
                     <p>Drop your browser history file here or click to browse</p>
                     <input type="file" id="fileInput" accept=".json,.csv,.txt" multiple>
                     <div class="file-format-info">
@@ -101,42 +146,66 @@
         </div>
 
         <div class="instructions" id="instructions">
-            <h3>📋 How to Export Your Browser History</h3>
+            <h3>📋 Easy Ways to Get Your Browsing Data</h3>
             
-            <div class="browser-instructions">
-                <div class="browser-card">
-                    <h4>🌐 Chrome</h4>
-                    <ol>
-                        <li>Open Chrome Settings (chrome://settings/)</li>
-                        <li>Click "Privacy and security" → "Clear browsing data"</li>
-                        <li>Or use browser extensions like "History Export"</li>
-                        <li>Export as JSON or CSV format</li>
-                    </ol>
+            <div class="easy-methods">
+                <div class="easy-method-card">
+                    <h4>🚀 Quickest Methods</h4>
+                    <ul>
+                        <li><strong>📋 Copy-Paste URLs:</strong> Just copy URLs from your browser's address bar history, bookmarks, or any source and paste them above</li>
+                        <li><strong>🔗 Browser Extension:</strong> Install our upcoming extension for one-click access</li>
+                        <li><strong>📱 Mobile Export:</strong> Use browser sync or bookmark export features</li>
+                    </ul>
                 </div>
-                
-                <div class="browser-card">
-                    <h4>🦊 Firefox</h4>
-                    <ol>
-                        <li>Open Firefox and press Ctrl+Shift+H</li>
-                        <li>Go to "Library" → "History" → "Show All History"</li>
-                        <li>Use "Export Bookmarks to HTML" or browser extensions</li>
-                        <li>Convert to JSON/CSV for upload</li>
-                    </ol>
+
+                <div class="easy-method-card">
+                    <h4>💡 Quick Tips</h4>
+                    <ul>
+                        <li>Open your browser's history (Ctrl+H) and copy interesting URLs</li>
+                        <li>Export bookmarks and paste the URLs here</li>
+                        <li>Copy URLs from your "Most Visited" or "Frequently Visited" sections</li>
+                        <li>Use your browser's download history or recently closed tabs</li>
+                    </ul>
                 </div>
-                
-                <div class="browser-card">
-                    <h4>🧭 Safari</h4>
-                    <ol>
-                        <li>Open Safari → "History" menu</li>
-                        <li>Use third-party tools or export via developer tools</li>
-                        <li>Save in JSON or CSV format</li>
-                    </ol>
+            </div>
+
+            <div class="traditional-methods">
+                <h4>🔧 Traditional Export Methods (If Needed)</h4>
+                <div class="browser-instructions">
+                    <div class="browser-card">
+                        <h4>🌐 Chrome</h4>
+                        <ol>
+                            <li>Open Chrome Settings (chrome://settings/)</li>
+                            <li>Click "Privacy and security" → "Clear browsing data"</li>
+                            <li>Or use browser extensions like "History Export"</li>
+                            <li>Export as JSON or CSV format</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="browser-card">
+                        <h4>🦊 Firefox</h4>
+                        <ol>
+                            <li>Open Firefox and press Ctrl+Shift+H</li>
+                            <li>Go to "Library" → "History" → "Show All History"</li>
+                            <li>Use "Export Bookmarks to HTML" or browser extensions</li>
+                            <li>Convert to JSON/CSV for upload</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="browser-card">
+                        <h4>🧭 Safari</h4>
+                        <ol>
+                            <li>Open Safari → "History" menu</li>
+                            <li>Use third-party tools or export via developer tools</li>
+                            <li>Save in JSON or CSV format</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
             
             <div class="privacy-note">
                 <h4>🔒 Privacy Notice</h4>
-                <p>Your browsing history is processed entirely in your browser. No data is sent to any server. The visualization is created locally on your device.</p>
+                <p>Your browsing data is processed entirely in your browser. No data is sent to any server. The visualization is created locally on your device.</p>
             </div>
         </div>
     </div>

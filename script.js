@@ -37,6 +37,28 @@ class BrowserHistoryMap {
             this.processFiles(files);
         });
 
+        // Quick access methods
+        document.getElementById('accessChromeHistory').addEventListener('click', () => {
+            this.accessBrowserHistory();
+        });
+
+        document.getElementById('installExtension').addEventListener('click', () => {
+            this.showExtensionInfo();
+        });
+
+        document.getElementById('pasteUrls').addEventListener('click', () => {
+            this.showUrlPasteArea();
+        });
+
+        // URL paste functionality
+        document.getElementById('processUrls').addEventListener('click', () => {
+            this.processUrlList();
+        });
+
+        document.getElementById('cancelPaste').addEventListener('click', () => {
+            this.hideUrlPasteArea();
+        });
+
         // Demo data button
         document.getElementById('loadDemoData').addEventListener('click', () => {
             this.loadDemoData();
@@ -472,6 +494,292 @@ class BrowserHistoryMap {
         ];
 
         this.processHistoryData(demoData);
+    }
+
+    // New seamless access methods
+    async accessBrowserHistory() {
+        try {
+            // Check if the History API is available (Chrome extension context)
+            if ('chrome' in window && chrome.history) {
+                await this.accessChromeHistory();
+            } else {
+                // Fallback to Web History API (limited but available)
+                await this.accessWebHistory();
+            }
+        } catch (error) {
+            console.error('Browser history access failed:', error);
+            this.showHistoryAccessFallback();
+        }
+    }
+
+    async accessChromeHistory() {
+        // This would work in a Chrome extension context
+        const button = document.getElementById('accessChromeHistory');
+        button.textContent = 'Requesting Permission...';
+        button.disabled = true;
+
+        try {
+            // Request history permission
+            const results = await new Promise((resolve, reject) => {
+                chrome.history.search({
+                    text: '',
+                    maxResults: 1000,
+                    startTime: Date.now() - (30 * 24 * 60 * 60 * 1000) // Last 30 days
+                }, resolve);
+            });
+
+            const historyData = results.map(item => ({
+                url: item.url,
+                title: item.title,
+                visit_count: item.visitCount || 1,
+                last_visit_time: new Date(item.lastVisitTime).toISOString()
+            }));
+
+            this.processHistoryData(historyData);
+        } catch (error) {
+            throw new Error('Chrome History API not available');
+        } finally {
+            button.textContent = 'Access History';
+            button.disabled = false;
+        }
+    }
+
+    async accessWebHistory() {
+        // Limited web-based history access
+        const button = document.getElementById('accessChromeHistory');
+        button.textContent = 'Analyzing Recent Activity...';
+        button.disabled = true;
+
+        try {
+            // Use document.referrer and navigation API for limited history
+            const recentUrls = [];
+            
+            // Get current URL
+            if (window.location.href !== 'about:blank') {
+                recentUrls.push({
+                    url: window.location.href,
+                    title: document.title,
+                    visit_count: 1,
+                    last_visit_time: new Date().toISOString()
+                });
+            }
+
+            // Check if navigation API is available (newer browsers)
+            if ('navigation' in window) {
+                const entries = navigation.entries();
+                entries.forEach(entry => {
+                    if (entry.url && entry.url !== window.location.href) {
+                        recentUrls.push({
+                            url: entry.url,
+                            title: entry.url,
+                            visit_count: 1,
+                            last_visit_time: new Date().toISOString()
+                        });
+                    }
+                });
+            }
+
+            if (recentUrls.length === 0) {
+                throw new Error('No accessible history data');
+            }
+
+            this.processHistoryData(recentUrls);
+        } catch (error) {
+            throw new Error('Limited browser history access');
+        } finally {
+            button.textContent = 'Access History';
+            button.disabled = false;
+        }
+    }
+
+    showHistoryAccessFallback() {
+        alert(`
+Browser History Access Limited
+
+Due to browser security restrictions, direct history access is limited. Please try:
+
+1. 📋 Use the "Paste URLs" option below
+2. 🔗 Install our browser extension (coming soon)
+3. 📄 Export history manually and upload the file
+4. 🎯 Try the demo data to see how it works
+
+Modern browsers protect your privacy by limiting direct history access.
+        `.trim());
+    }
+
+    showExtensionInfo() {
+        const modal = document.createElement('div');
+        modal.className = 'extension-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔗 Browser Extension (Coming Soon)</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p>We're developing browser extensions that will provide seamless, one-click access to your browsing history:</p>
+                    
+                    <div class="extension-features">
+                        <div class="feature">
+                            <span class="feature-icon">⚡</span>
+                            <strong>One-click export</strong> - No manual steps required
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🔒</span>
+                            <strong>Privacy-first</strong> - Data never leaves your device
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🔄</span>
+                            <strong>Real-time sync</strong> - Always up-to-date visualization
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🎯</span>
+                            <strong>Smart filtering</strong> - Automatic categorization
+                        </div>
+                    </div>
+
+                    <div class="extension-status">
+                        <h4>Development Status:</h4>
+                        <div class="status-item">✅ Chrome Extension - In Development</div>
+                        <div class="status-item">🔄 Firefox Add-on - Planned</div>
+                        <div class="status-item">🔄 Edge Extension - Planned</div>
+                    </div>
+
+                    <p><strong>In the meantime:</strong> Use the "Paste URLs" option for quick access!</p>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="demo-btn">Got it!</button>
+                </div>
+            </div>
+        `;
+
+        // Add modal styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .extension-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .modal-content {
+                background: white;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 25px;
+                border-bottom: 1px solid #eee;
+            }
+            .modal-header h3 {
+                margin: 0;
+                color: #333;
+            }
+            .close-modal {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #999;
+            }
+            .modal-body {
+                padding: 25px;
+            }
+            .extension-features {
+                margin: 20px 0;
+            }
+            .feature {
+                display: flex;
+                align-items: center;
+                margin-bottom: 12px;
+                padding: 10px;
+                background: #f8f9ff;
+                border-radius: 8px;
+            }
+            .feature-icon {
+                margin-right: 12px;
+                font-size: 1.2rem;
+            }
+            .extension-status {
+                background: #f0f8ff;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+            }
+            .extension-status h4 {
+                margin-bottom: 10px;
+                color: #333;
+            }
+            .status-item {
+                margin-bottom: 5px;
+                font-size: 0.9rem;
+            }
+            .modal-footer {
+                padding: 20px 25px;
+                border-top: 1px solid #eee;
+                text-align: center;
+            }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(modal);
+    }
+
+    showUrlPasteArea() {
+        document.getElementById('urlPasteSection').style.display = 'block';
+        document.getElementById('urlTextarea').focus();
+    }
+
+    hideUrlPasteArea() {
+        document.getElementById('urlPasteSection').style.display = 'none';
+        document.getElementById('urlTextarea').value = '';
+    }
+
+    processUrlList() {
+        const textarea = document.getElementById('urlTextarea');
+        const urlText = textarea.value.trim();
+        
+        if (!urlText) {
+            alert('Please paste some URLs first!');
+            return;
+        }
+
+        const urls = urlText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && (line.startsWith('http') || line.includes('.')));
+
+        if (urls.length === 0) {
+            alert('No valid URLs found. Please make sure each URL is on a separate line.');
+            return;
+        }
+
+        // Convert URLs to history data format
+        const historyData = urls.map((url, index) => {
+            const domain = this.extractDomainFromUrl(url);
+            return {
+                url: url,
+                title: domain,
+                visit_count: 1,
+                last_visit_time: new Date(Date.now() - (index * 60000)).toISOString() // Stagger times
+            };
+        });
+
+        this.processHistoryData(historyData);
+        this.hideUrlPasteArea();
+
+        // Show success message
+        alert(`Successfully processed ${urls.length} URLs! 🎉`);
     }
 }
 

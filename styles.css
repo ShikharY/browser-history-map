@@ -47,6 +47,149 @@ header p {
     margin-bottom: 30px;
 }
 
+/* Quick Access Section */
+.quick-access-section {
+    margin-bottom: 40px;
+}
+
+.quick-access-section h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #333;
+    font-weight: 600;
+}
+
+.access-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.method-card {
+    background: linear-gradient(135deg, #f8f9ff, #e8f0ff);
+    border: 2px solid #e0e7ff;
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.method-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+    border-color: #667eea;
+}
+
+.method-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.method-card h4 {
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.method-card p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.method-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.method-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.method-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.method-note {
+    color: #888;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* URL Paste Section */
+.url-paste-section {
+    background: #f8f9ff;
+    border: 2px solid #e0e7ff;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.url-paste-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+#urlTextarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    resize: vertical;
+    margin-bottom: 15px;
+    transition: border-color 0.3s ease;
+}
+
+#urlTextarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.paste-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.cancel-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
 .upload-area {
     border: 3px dashed #ddd;
     border-radius: 10px;
@@ -252,6 +395,57 @@ header p {
     color: #333;
     margin-bottom: 25px;
     font-weight: 600;
+}
+
+.easy-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.easy-method-card {
+    background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #28a745;
+}
+
+.easy-method-card h4 {
+    color: #155724;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.easy-method-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.easy-method-card li {
+    margin-bottom: 10px;
+    color: #155724;
+    line-height: 1.5;
+    padding-left: 20px;
+    position: relative;
+}
+
+.easy-method-card li:before {
+    content: "✨";
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.traditional-methods {
+    margin-bottom: 20px;
+}
+
+.traditional-methods h4 {
+    color: #666;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 1.1rem;
 }
 
 .browser-instructions {
